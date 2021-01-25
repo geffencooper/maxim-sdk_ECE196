@@ -67,6 +67,19 @@ int get_image_y()
 }
 
 
+void capture_camera_img(void) 
+{
+  camera_start_capture_image();
+  while (1) 
+  {
+    if (camera_is_image_rcv()) 
+    {
+      return;
+    }
+  }
+}
+
+
 void process_camera_img(uint32_t *data0, uint32_t *data1, uint32_t *data2)
 {
     uint8_t *frame_buffer;
@@ -94,16 +107,15 @@ void process_camera_img(uint32_t *data0, uint32_t *data1, uint32_t *data2)
 }
 
 
-void capture_camera_img(void) 
+void process_img(int x_coord, int y_coord)
 {
-  camera_start_capture_image();
-  while (1) 
-  {
-    if (camera_is_image_rcv()) 
-    {
-      return;
-    }
-  }
+	uint8_t   *raw;
+	uint32_t  imgLen;
+	uint32_t  w, h;
+
+  // Get the details of the image from the camera driver.
+	camera_get_image(&raw, &imgLen, &w, &h);
+	MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
 }
 
 /***** Touch Screen Functions *****/
@@ -173,67 +185,3 @@ void TFT_Print(char *str, int x, int y, int font)
 
 
 
-static void process_img(void)
-{
-	uint8_t   *raw;
-	uint32_t  imgLen;
-	uint32_t  w, h;
-
-    // Get the details of the image from the camera driver.
-	camera_get_image(&raw, &imgLen, &w, &h);
-
-	// Send the image through the UART to the console.
-    // A python program will read from the console and write to an image file.
-//	utils_send_img_to_pc(raw, imgLen, w, h, camera_get_pixel_format());
-
-	uint16_t *image = (uint16_t*)raw;	// 2bytes per pixel RGB565
-
-#define HEIGHT 		160
-#define WIDTH		120
-#define THICKNESS	4
-#define IMAGE_H		150
-#define IMAGE_W		200
-#define FRAME_COLOR	0x535A
-
-
-	// left line
-	image+=((IMAGE_H - (WIDTH+2*THICKNESS))/2)*IMAGE_W;
-	for (int i = 0; i<THICKNESS; i++) {
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-		for(int j=0; j< HEIGHT+2*THICKNESS; j++) {
-			*(image++) = FRAME_COLOR; //color
-		}
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-	}
-
-	//right line
-	image = ((uint16_t*)raw) + (((IMAGE_H - (WIDTH+2*THICKNESS))/2) + WIDTH + THICKNESS )*IMAGE_W;
-	for (int i = 0; i<THICKNESS; i++) {
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-		for(int j =0; j< HEIGHT+2*THICKNESS; j++) {
-			*(image++) = FRAME_COLOR; //color
-		}
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-	}
-
-	//top + bottom lines
-	image = ((uint16_t*)raw) + ((IMAGE_H - (WIDTH+2*THICKNESS))/2)*IMAGE_W;
-	for (int i = 0; i<WIDTH+2*THICKNESS; i++) {
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-		for(int j =0; j< THICKNESS; j++) {
-			*(image++) = FRAME_COLOR; //color
-		}
-		image+=HEIGHT;
-		for(int j =0; j< THICKNESS; j++) {
-			*(image++) = FRAME_COLOR; //color
-		}
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-	}
-
-#define X_START	45
-#define Y_START	30
-
-
-	MXC_TFT_ShowImageCameraRGB565(X_START, Y_START, raw, h, w);
-
-}

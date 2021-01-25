@@ -188,79 +188,13 @@ static const uint8_t camera_settings[][2] = {
     {0xca, 0x1},
     {0xcb, 0xe0},
     {0xcc, 0x0},
-    {0xcd, 0xFF}, 	// Default to 64 line width
+    {0xcd, 0x40}, 	// Default to 64 line width
     {0xce, 0x0},
-    {0xcf, 0xFF}, 	// Default to 64 lines high
+    {0xcf, 0x40}, 	// Default to 64 lines high
     {0x1c, 0x7f},
     {0x1d, 0xa2},
 	{0xee, 0xee}  // End of register list marker 0xee
 };
-
-static void process_img(void)
-{
-	uint8_t   *raw;
-	uint32_t  imgLen;
-	uint32_t  w, h;
-
-    // Get the details of the image from the camera driver.
-	camera_get_image(&raw, &imgLen, &w, &h);
-
-	// Send the image through the UART to the console.
-    // A python program will read from the console and write to an image file.
-//	utils_send_img_to_pc(raw, imgLen, w, h, camera_get_pixel_format());
-
-	uint16_t *image = (uint16_t*)raw;	// 2bytes per pixel RGB565
-
-#define HEIGHT 		160
-#define WIDTH		120
-#define THICKNESS	4
-#define IMAGE_H		150
-#define IMAGE_W		200
-#define FRAME_COLOR	0x535A
-
-
-	// left line
-	image+=((IMAGE_H - (WIDTH+2*THICKNESS))/2)*IMAGE_W;
-	for (int i = 0; i<THICKNESS; i++) {
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-		for(int j=0; j< HEIGHT+2*THICKNESS; j++) {
-			*(image++) = FRAME_COLOR; //color
-		}
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-	}
-
-	//right line
-	image = ((uint16_t*)raw) + (((IMAGE_H - (WIDTH+2*THICKNESS))/2) + WIDTH + THICKNESS )*IMAGE_W;
-	for (int i = 0; i<THICKNESS; i++) {
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-		for(int j =0; j< HEIGHT+2*THICKNESS; j++) {
-			*(image++) = FRAME_COLOR; //color
-		}
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-	}
-
-	//top + bottom lines
-	image = ((uint16_t*)raw) + ((IMAGE_H - (WIDTH+2*THICKNESS))/2)*IMAGE_W;
-	for (int i = 0; i<WIDTH+2*THICKNESS; i++) {
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-		for(int j =0; j< THICKNESS; j++) {
-			*(image++) = FRAME_COLOR; //color
-		}
-		image+=HEIGHT;
-		for(int j =0; j< THICKNESS; j++) {
-			*(image++) = FRAME_COLOR; //color
-		}
-		image+=((IMAGE_W - (HEIGHT+2*THICKNESS))/2);
-	}
-
-#define X_START	45
-#define Y_START	30
-
-
-	MXC_TFT_ShowImageCameraRGB565(X_START, Y_START, raw, h, w);
-
-}
-
 
 int main(void)
 {
@@ -275,19 +209,22 @@ int main(void)
   printf("Init LCD.\n");
   init_touchscreen(); // GC helper function
   MXC_TFT_ClearScreen();
+
+	/* Set the screen rotation */
+	MXC_TFT_SetRotation(SCREEN_ROTATE);
   // MXC_TFT_ShowImage(0, 0, img_1_bmp);
 
   // Initialize camera.
   printf("Init Camera.\n");
   camera_init();
-  set_image_dimensions(64,64); // GC helper function
+  set_image_dimensions(240,230); // GC helper function
   
   // set camera registers with default values
 	for (int i = 0; (camera_settings[i][0] != 0xee); i++) {
 		camera_write_reg(camera_settings[i][0], camera_settings[i][1]);
 	}
   // Setup the camera image dimensions, pixel format and data acquiring details.
-	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB888, FIFO_THREE_BYTE, USE_DMA);
+	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA);
 	if (ret != STATUS_OK) {
 		printf("Error returned from setting up camera. Error %d\n", ret);
 		return -1;
@@ -302,11 +239,11 @@ int main(void)
   // sprintf(buff, "MAXIM INTEGRATED             ");
   // TFT_Print(buff, 55, 50, urw_gothic_13_white_bg_grey);
 
-  sprintf(buff, "Camera Interface        ");
-  TFT_Print(buff, 55, 90, urw_gothic_12_white_bg_grey);
+  //sprintf(buff, "Camera Interface        ");
+  //TFT_Print(buff, 55, 90, urw_gothic_12_white_bg_grey);
 
-  sprintf(buff, "PRESS PB1 TO START!          ");
-  TFT_Print(buff, 55, 130, urw_gothic_13_white_bg_grey);
+  //sprintf(buff, "PRESS PB1 TO START!          ");
+  //TFT_Print(buff, 55, 130, urw_gothic_13_white_bg_grey);
 
   int frame = 0;
 
@@ -315,12 +252,12 @@ int main(void)
     // capture an image by pressing a button
     #ifdef CAPTURE_IMAGE
     printf("********** Press PB1 to capture an image **********\r\n");
-    while(!PB_Get(0));
-    MXC_TFT_ClearScreen();
+    //while(!PB_Get(0));
+    //MXC_TFT_ClearScreen();
 
     //MXC_TFT_ShowImage(1, 1, logo_white_bg_darkgrey_bmp);
-    sprintf(buff, "CAPTURING IMAGE....           ");
-    TFT_Print(buff, 55, 110, urw_gothic_13_white_bg_grey);
+   // sprintf(buff, "CAPTURING IMAGE....           ");
+    //TFT_Print(buff, 55, 110, urw_gothic_13_white_bg_grey);
 
     // Capture a single camera frame.
     printf("\nCapture a camera frame %d\n", ++frame);
@@ -328,16 +265,16 @@ int main(void)
 
     // Copy the image data to the CNN input arrays.
     printf("Copy camera frame to CNN input buffers.\n");
-    process_camera_img(input_0_camera, input_1_camera, input_2_camera);
-    //process_img();
+    //process_camera_img(input_0_camera, input_1_camera, input_2_camera);
+    process_img(0,0);
     // Show the input data on the lcd.
-    MXC_TFT_ClearScreen();
+    //MXC_TFT_ClearScreen();
     // MXC_TFT_ShowImage(1, 1, logo_white_bg_darkgrey_bmp);
     printf("Show camera frame on LCD.\n");
-    lcd_show_sampledata(input_0_camera, input_1_camera, input_2_camera, 4096);
+    //lcd_show_sampledata(input_0_camera, input_1_camera, input_2_camera, 4096);
 
-    sprintf(buff, "PRESS PB1 TO CAPTURE IMAGE      ");
-    TFT_Print(buff, 10, 210, urw_gothic_12_white_bg_grey);
+    //sprintf(buff, "PRESS PB1 TO CAPTURE IMAGE      ");
+    //TFT_Print(buff, 10, 210, urw_gothic_12_white_bg_grey);
     #endif
 
 

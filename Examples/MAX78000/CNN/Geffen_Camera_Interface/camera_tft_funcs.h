@@ -50,10 +50,11 @@ int get_image_x();
 
 int get_image_y();
 
-void process_camera_img(uint32_t *data0, uint32_t *data1, uint32_t *data2);
-
 void capture_camera_img(void);
 
+void process_camera_img(uint32_t *data0, uint32_t *data1, uint32_t *data2);
+
+void process_img(int x_coord, int y_coord);
 
 /***** Touch Screen Functions *****/
 void init_touchscreen();
