@@ -159,6 +159,6 @@ void display_RGB565_img(int x_coord, int y_coord);
 
     Return: none
 */
-void LCD_Print(char *str, int x, int y, int font);
+void TFT_Print(char *str, int x, int y, int font);
 
 #endif

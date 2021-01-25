@@ -274,6 +274,8 @@ void display_RGB888_img(uint32_t *data0, uint32_t *data1, uint32_t *data2, int l
   uint8_t *ptr1;
   uint8_t *ptr2;
 
+  // x = 47;
+  // y = 15;
   x = x_coord;
   y = y_coord;
   for (i = 0; i < length; i++) 
@@ -289,11 +291,11 @@ void display_RGB888_img(uint32_t *data0, uint32_t *data1, uint32_t *data2, int l
       color  = (0x01000100 | ((b & 0xF8) << 13) | ((g & 0x1C) << 19) | ((g & 0xE0) >> 5) | (r & 0xF8));
       MXC_TFT_WritePixel(x * scale, y * scale, scale, scale, color);
       x += 1;
-      if (x >= (IMAGE_SIZE_X + 47)) 
+      if (x >= (IMAGE_SIZE_X + x_coord)) 
       {
-        x = 47;
+        x = x_coord;
         y += 1;
-        if ((y + 6) >= (IMAGE_SIZE_Y + 15))
+        if ((y + 6) >= (IMAGE_SIZE_Y + y_coord))
         { 
             return;
         }

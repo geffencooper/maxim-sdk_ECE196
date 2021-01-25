@@ -62,10 +62,12 @@
 /***** Definitions *****/
 #define TFT_BUFF_SIZE   50    // TFT buffer size
 
-#define CAPTURE_IMAGE
-//#define CONTINUOUS_STREAM
+// capture one image at a time or a continuous stream
+//#define CAPTURE_IMAGE
+#define CONTINUOUS_STREAM
 
 /***** Globals *****/
+// RGB888 buffers
 uint32_t input_0_camera[1024];
 uint32_t input_1_camera[1024];
 uint32_t input_2_camera[1024];
@@ -84,77 +86,89 @@ int main(void)
 
   // Initialize TFT display.
   printf("Init LCD.\n");
-  init_LCD(); // GC helper function
+  init_LCD();
   MXC_TFT_ClearScreen();
 
-	/* Set the screen rotation */
-	MXC_TFT_SetRotation(SCREEN_ROTATE);
-  // MXC_TFT_ShowImage(0, 0, img_1_bmp);
+  MXC_TFT_ShowImage(0, 0, img_1_bmp);
 
   // Initialize camera.
   printf("Init Camera.\n");
   camera_init();
-  set_image_dimensions(200,150); // GC helper function
   
+  #ifdef CAPTURE_IMAGE
+ set_image_dimensions(64,64);
+
   // Setup the camera image dimensions, pixel format and data acquiring details.
+  // 3 bytes becase each pixel is 3 bytes
+	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB888, FIFO_THREE_BYTE, USE_DMA);
+	if (ret != STATUS_OK) 
+  {
+		printf("Error returned from setting up camera. Error %d\n", ret);
+		return -1;
+	}
+  int frame = 0;
+  #endif
+
+  #ifdef CONTINUOUS_STREAM
+  set_image_dimensions(200, 150);
+
+  /* Set the screen rotation because camera flipped*/
+	MXC_TFT_SetRotation(SCREEN_ROTATE);
+  // Setup the camera image dimensions, pixel format and data acquiring details.
+  // four bytes because each pixel is 2 bytes, can get 2 pixels at a time
 	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA);
 	if (ret != STATUS_OK) 
   {
 		printf("Error returned from setting up camera. Error %d\n", ret);
 		return -1;
 	}
-  // MXC_Delay(1000000);
-  // MXC_TFT_SetPalette(logo_white_bg_darkgrey_bmp);
+  #endif
+  
+  MXC_Delay(1000000);
+  MXC_TFT_SetPalette(logo_white_bg_darkgrey_bmp);
   MXC_TFT_SetBackGroundColor(4);
 
-  // MXC_TFT_ShowImage(1, 1, logo_white_bg_darkgrey_bmp);
-
+  #ifdef CAPTURE_IMAGE
   memset(buff,32,TFT_BUFF_SIZE);
-  // sprintf(buff, "MAXIM INTEGRATED             ");
-  // TFT_Print(buff, 55, 50, urw_gothic_13_white_bg_grey);
+  sprintf(buff, "MAXIM INTEGRATED             ");
+  TFT_Print(buff, 55, 50, urw_gothic_13_white_bg_grey);
 
-  //sprintf(buff, "Camera Interface        ");
-  //TFT_Print(buff, 55, 90, urw_gothic_12_white_bg_grey);
+  sprintf(buff, "Camera Interface        ");
+  TFT_Print(buff, 55, 90, urw_gothic_12_white_bg_grey);
 
-  //sprintf(buff, "PRESS PB1 TO START!          ");
-  //TFT_Print(buff, 55, 130, urw_gothic_13_white_bg_grey);
+  sprintf(buff, "PRESS PB1 TO START!          ");
+  TFT_Print(buff, 55, 130, urw_gothic_13_white_bg_grey);
+  #endif
 
-  int frame = 0;
 
   while (1) 
   {
     // capture an image by pressing a button
     #ifdef CAPTURE_IMAGE
     printf("********** Press PB1 to capture an image **********\r\n");
-    //while(!PB_Get(0));
-    //MXC_TFT_ClearScreen();
+    while(!PB_Get(0));
+    MXC_TFT_ClearScreen();
 
-    //MXC_TFT_ShowImage(1, 1, logo_white_bg_darkgrey_bmp);
-   // sprintf(buff, "CAPTURING IMAGE....           ");
-    //TFT_Print(buff, 55, 110, urw_gothic_13_white_bg_grey);
+    sprintf(buff, "CAPTURING IMAGE....           ");
+    TFT_Print(buff, 55, 110, urw_gothic_13_white_bg_grey);
 
     // Capture a single camera frame.
     printf("\nCapture a camera frame %d\n", ++frame);
     capture_camera_img();
 
-    // Copy the image data to the CNN input arrays.
-    printf("Copy camera frame to CNN input buffers.\n");
-    //process_camera_img(input_0_camera, input_1_camera, input_2_camera);
-    display_RGB565_img(0,0);
-    // Show the input data on the lcd.
-    //MXC_TFT_ClearScreen();
-    // MXC_TFT_ShowImage(1, 1, logo_white_bg_darkgrey_bmp);
-    printf("Show camera frame on LCD.\n");
-    //lcd_show_sampledata(input_0_camera, input_1_camera, input_2_camera, 4096);
+    // load the buffers
+    process_RGB888_img(input_0_camera, input_1_camera, input_2_camera);
 
-    //sprintf(buff, "PRESS PB1 TO CAPTURE IMAGE      ");
-    //TFT_Print(buff, 10, 210, urw_gothic_12_white_bg_grey);
+    // display the image
+    display_RGB888_img(input_0_camera, input_1_camera, input_2_camera, 1024, 0, 0);
+
+    sprintf(buff, "PRESS PB1 TO CAPTURE IMAGE      ");
+    TFT_Print(buff, 10, 210, urw_gothic_12_white_bg_grey);
     #endif
-
-
-    // see a continuous image stream
-    #ifdef CONTINUOUS_STREAM
     
+    #ifdef CONTINUOUS_STREAM
+    capture_camera_img();
+    display_RGB565_img(0,0);
     #endif
   }
 
