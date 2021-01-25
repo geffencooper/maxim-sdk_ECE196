@@ -31,11 +31,20 @@
 *
 ******************************************************************************/
 
-/**
- * @file    camera_tft_funcs.h
- * @brief   camera and touch screen helper function
- * @details organize the maxim provided functions into a separate file
- */
+/*
+    This file contains helper functions for using the camera and LCD (tft = LCD)
+    peripherals. The code itself is mainly taken from the given examples
+    from Maxim Integrated but reorganizes and explains how it works.
+
+    Other useful files:
+    Libraries/Boards/MAX78000/Source/Camera.c
+    Libraries/Boards/MAX78000/Source/ov7692.c
+    Libraries/Boards/MAX78000/Source/tft.c
+
+    Other useful functions:
+    tft.c/MXC_TFT_ShowImageCameraRGB565()
+    camera.c/camera_get_image()
+*/
 
 #ifndef CAMERA_TFT_FUNCS
 #define CAMERA_TFT_FUNCS
@@ -44,23 +53,112 @@
 #include <stdint.h>
 
 /***** Camera Functions *****/
+
+/*
+    Description: This function sets the image dimensions to get from the
+                 camera. The max is (X, Y) = (319, 239). Beyond, (200, 150)
+                 there is noticeable update latency. This function also sets
+                 the camera registers with the default values.
+
+    Parameters: The desired X and Y dimensions
+
+    Return: none
+*/
 void set_image_dimensions(uint16_t x_dim, uint16_t y_dim);
 
+
+/*
+    Description: get the x dimension of the image
+
+    Parameters: none
+
+    Return: x dimension of the image
+*/
 int get_image_x();
 
+
+/*
+    Description: get the y dimension of the image
+
+    Parameters: none
+
+    Return: y dimension of the image
+*/
 int get_image_y();
 
+
+/*
+    Description: This is a blocking function that starts and image
+                 capture and only returns once the camera has
+                 captured the image
+
+    Parameters: none
+
+    Return: none
+*/
 void capture_camera_img(void);
 
-void process_camera_img(uint32_t *data0, uint32_t *data1, uint32_t *data2);
 
-void process_img(int x_coord, int y_coord);
+/*
+    Description: This function is called once the camera has captured
+                 an image. It gets a pointer the raw frame buffer
+                 and extracts and writes the RGB components to seperate
+                 RGB buffers that will be used to display to the LCD. These
+                 buffer are also the CNN data buffers. RGB888 means that
+                 each color channel is 8 bits so each pixel is 24 bits.
 
-/***** Touch Screen Functions *****/
-void init_touchscreen();
+    Parameters: RGB buffers to fill, these will be used to display to the LCD
 
-void lcd_show_sampledata(uint32_t *data0, uint32_t *data1, uint32_t *data2, int length);
+    Return: none
+*/
+void process_RGB888_img(uint32_t *r_buffer, uint32_t *g_buffer, uint32_t *b_buffer);
 
-void TFT_Print(char *str, int x, int y, int font);
+
+
+/***** LCD Functions *****/
+
+/*
+    Description: This function initializes the LCD and clears the screen
+
+    Parameters: None
+
+    Return: none
+*/
+void init_LCD();
+
+/*
+    Description: This function writes the RGB buffers to the LCD using
+                 MXC_TFT_WritePixel().
+
+    Parameters: The RGB buffers, length of the buffers, and the location of the image (top left corner)
+
+    Return: none
+*/
+void display_RGB888_img(uint32_t *r_buff, uint32_t *g_buff, uint32_t *b_buff, int length, int x_coord, int y_coord);
+
+/*
+    Description: This function is called once the camera has captured
+                 an image. It gets a pointer the raw frame buffer
+                 and passes it to MXC_TFT_ShowImageCameraRGB565() which
+                 writes the image data to the LCD display using RGB565. RGB565
+                 means that the RGB channels are 5, 6, and 5 bits accordingly.
+                 Overall this is an even 16 bits (2 bytes). This method is much
+                 faster than RGB888, use this for continuous streaming.
+
+    Parameters: The location to display the image on the LCD (top left corner)
+
+    Return: none
+*/
+void display_RGB565_img(int x_coord, int y_coord);
+
+
+/*
+    Description: This function writes text to the LCD
+
+    Parameters: Pointer to the text buffer, location, and font
+
+    Return: none
+*/
+void LCD_Print(char *str, int x, int y, int font);
 
 #endif
