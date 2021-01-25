@@ -71,6 +71,7 @@ export CMSIS_ROOT
 SRCS  = main.c
 SRCS += softmax.c
 SRCS += TFT/all_imgs.c
+SRCS += camera_tft_funcs.c
 
 # Where to find source files for this test
 VPATH  = .

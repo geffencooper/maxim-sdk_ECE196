@@ -242,7 +242,7 @@ int main(void)
 
 	// Obtain the manufacture ID of the camera.
 	ret = camera_get_manufacture_id(&id);
-	if (ret != STATUS_OK) {
+	if (ret != STATUS_OK) {                          
 		PR_ERR("Error returned from reading camera id. Error %d\n", ret);
 		return -1;
 	}
