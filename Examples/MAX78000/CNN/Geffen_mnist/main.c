@@ -67,10 +67,8 @@
 #define CONTINUOUS_STREAM
 
 /***** Globals *****/
-// RGB888 buffers, uint32 so 4 pixels per item, 1024*4 = 4096 pixels = 64x64
-uint32_t input_0_camera[1024]; // 4096 red px
-uint32_t input_1_camera[1024]; // 4096 green px
-uint32_t input_2_camera[1024]; // 4096 blue px
+// Grayscale buffer, uint32 so 2 pixels per item, 196*4 = 784 pixels = 28x28
+uint32_t gray_buffer[196]; // 784 grayscale px
 
 // buffer for touch screen text
 char buff[TFT_BUFF_SIZE];
@@ -110,13 +108,13 @@ int main(void)
   #endif
 
   #ifdef CONTINUOUS_STREAM
-  set_image_dimensions(200, 150);
+  set_image_dimensions(100, 100);
 
   /* Set the screen rotation because camera flipped*/
-	MXC_TFT_SetRotation(SCREEN_ROTATE);
+	//MXC_TFT_SetRotation(SCREEN_ROTATE);
   // Setup the camera image dimensions, pixel format and data acquiring details.
   // four bytes because each pixel is 2 bytes, can get 2 pixels at a time
-	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA);
+	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_GRAYSCALE, FIFO_FOUR_BYTE, USE_DMA);
 	if (ret != STATUS_OK) 
   {
 		printf("Error returned from setting up camera. Error %d\n", ret);
@@ -168,7 +166,7 @@ int main(void)
     
     #ifdef CONTINUOUS_STREAM
     capture_camera_img();
-    display_RGB565_img(0,0);
+    display_grayscale_img(0,0);
     #endif
   }
 

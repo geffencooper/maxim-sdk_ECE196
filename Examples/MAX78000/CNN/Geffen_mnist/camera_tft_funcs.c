@@ -308,6 +308,24 @@ void display_RGB888_img(uint32_t *data0, uint32_t *data1, uint32_t *data2, int l
 }
 
 
+void display_grayscale_img(int x_coord, int y_coord)
+{
+  uint8_t   *raw;
+	uint32_t  imgLen;
+	uint32_t  w, h;
+
+  // Get the details of the image from the camera driver.
+	camera_get_image(&raw, &imgLen, &w, &h);
+
+  displaySub(x_coord, y_coord, w, h);
+
+  for (int y = 0; y < h; y++) 
+  {
+    print_line(&raw[y * w], w);
+  }
+}
+
+
 void TFT_Print(char *str, int x, int y, int font) 
 {
   // fonts id

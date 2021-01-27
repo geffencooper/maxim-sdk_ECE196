@@ -156,6 +156,17 @@ void display_RGB888_img(uint32_t *r_buff, uint32_t *g_buff, uint32_t *b_buff, in
 */
 void display_RGB565_img(int x_coord, int y_coord);
 
+/*
+    Description: This function is called once the camera has captured
+                 an image. It gets a pointer the raw frame buffer
+                 and ...
+
+    Parameters: The location to display the image on the LCD (top left corner)
+
+    Return: none
+*/
+void display_grayscale_img(int x_coord, int y_coord);
+
 
 /*
     Description: This function writes text to the LCD
