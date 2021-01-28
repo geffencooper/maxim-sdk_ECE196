@@ -343,25 +343,39 @@ void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer)
   #define GREEN_PX 0xE003;
   #define BLUE_PX 0x1F00;
 
-  int row = 0;
-  int col = 0;
   for(int i = 0; i < w; i++)
   {
     for(int j = 0; j < h; j++)
     {
-      uint16_t Y = ((uint16_t*)raw)[w*i+j] & 0x00FF;
+      // extract luminance
+      uint16_t Y = (((uint16_t*)raw)[w*i+j] & 0x00FF);
+      
+      // binary threshold, send pixels to blakc or white
+      if(Y > 70)
+      {
+        Y = 255;
+      }
+      else
+      {
+        Y = 0;
+      }
+
+      Y = 255 - Y;
+      
+      // represent luminance using RGB565
       uint16_t R = (Y & 0x00F8);
       uint16_t G = (Y & 0x00FC);
       G = (((G & 0xE0) >> 5) | ((G & 0x1C) << 11));
       uint16_t B = ((Y & 0x00F8) << 5);
-      //((uint16_t*)raw)[w*i+j] = ( ((Y & 0xF8) << 8) | (((Y & 0xFC) << 3)) | ((Y & 0xF8) >> 3) );
-      ((uint16_t*)raw)[w*i+j] = (R | G | B);
-      cnn_buffer[(w/2)*row+col] = 
+      //((uint16_t*)raw)[w*i+j] = (R | G | B); // edit the raw frame buffer to grayscale
 
-      // ((uint16_t*)raw)[w*i+j] = GREEN_PX;
-      //col++;
+      // downsample image on even rows and cols
+      if(((i&1) == 0) && ((j&1) == 0))
+      {
+        //cnn_buffer[(w>>1)*(i>>1)+(j>>1)] = Y;
+        ((uint16_t*)raw)[(w>>1)*(i>>1)+(j>>1)] = (R | G | B);
+      }
     }
-    row++;
   }
   //printf("W: %i H: %i LEN: %i\n", w, h, imgLen);
   
@@ -378,7 +392,9 @@ void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer)
   // printf("\033[0;0f");
 
   // display the image
-  MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
+  //MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
+  
+  MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h/2, w/2);
 }
 
 

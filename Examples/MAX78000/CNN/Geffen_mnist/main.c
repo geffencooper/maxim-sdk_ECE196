@@ -115,7 +115,7 @@ int main(void)
 
   #ifdef CONTINUOUS_STREAM
   set_image_dimensions(56*2, 56*2);
-
+  
   /* Set the screen rotation because camera flipped*/
 	MXC_TFT_SetRotation(SCREEN_ROTATE);
   // Setup the camera image dimensions, pixel format and data acquiring details.
