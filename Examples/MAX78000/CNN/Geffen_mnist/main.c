@@ -114,7 +114,7 @@ int main(void)
   #endif
 
   #ifdef CONTINUOUS_STREAM
-  set_image_dimensions(56*2, 56*2);
+  set_image_dimensions(28*2, 28*2);
   
   /* Set the screen rotation because camera flipped*/
 	MXC_TFT_SetRotation(SCREEN_ROTATE);
@@ -144,7 +144,7 @@ int main(void)
   TFT_Print(buff, 55, 130, urw_gothic_13_white_bg_grey);
   #endif
 
-
+  uint8_t buffer[784];
   while (1) 
   {
     // capture an image by pressing a button
@@ -173,7 +173,7 @@ int main(void)
     #ifdef CONTINUOUS_STREAM
     capture_camera_img();
     //display_RGB565_img(0,0);
-    display_grayscale_img(0,0,NULL);
+    display_grayscale_img(0,0,buffer);
     #endif
   }
 

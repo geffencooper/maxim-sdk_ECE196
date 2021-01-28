@@ -331,14 +331,6 @@ void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer)
 
   */
   
-
-  // for(int i = 0; i < imgLen/4; i++)
-  // {
-  //   uint8_t Y = *(raw); // get the Y byte which is every other byte
-  //   *((uint16_t*)raw) = ( ((Y & 0xF8) << 8) | (((Y & 0xFC) << 3)) | ((Y & 0xF8) >> 3) );
-  //   raw+=2; // go to the next pixel (increments by 2)
-  //   //printf("%p\n", raw);
-  // }
   #define RED_PX 0x00F8;
   #define GREEN_PX 0xE003;
   #define BLUE_PX 0x1F00;
@@ -348,7 +340,7 @@ void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer)
     for(int j = 0; j < h; j++)
     {
       // extract luminance
-      uint16_t Y = (((uint16_t*)raw)[w*i+j] & 0x00FF);
+      uint8_t Y = (((uint16_t*)raw)[w*i+j] & 0x00FF);
       
       // binary threshold, send pixels to blakc or white
       if(Y > 70)
@@ -372,11 +364,17 @@ void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer)
       // downsample image on even rows and cols
       if(((i&1) == 0) && ((j&1) == 0))
       {
-        //cnn_buffer[(w>>1)*(i>>1)+(j>>1)] = Y;
+        cnn_buffer[(w>>1)*(i>>1)+(j>>1)] = Y;
+        printf("%02X ", cnn_buffer[(w>>1)*(i>>1)+(j>>1)]);
+
+        // uncomment this to visualize downsampling
         ((uint16_t*)raw)[(w>>1)*(i>>1)+(j>>1)] = (R | G | B);
       }
     }
+    printf("");
   }
+  printf("\033[0;0f"); // escape sequence to move cursor to top left corner, keeps stdout fixed
+  
   //printf("W: %i H: %i LEN: %i\n", w, h, imgLen);
   
   // int count = 0;
