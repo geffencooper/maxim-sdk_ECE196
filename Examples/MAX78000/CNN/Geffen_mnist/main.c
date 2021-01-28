@@ -69,8 +69,7 @@
 #define CONTINUOUS_STREAM
 
 /***** Globals *****/
-// Grayscale buffer, uint32 so 2 pixels per item, 196*4 = 784 pixels = 28x28
-uint32_t gray_buffer[196]; // 784 grayscale px
+uint32_t cnn_buffer[196];
 
 // buffer for touch screen text
 char buff[TFT_BUFF_SIZE];
@@ -144,7 +143,7 @@ int main(void)
   TFT_Print(buff, 55, 130, urw_gothic_13_white_bg_grey);
   #endif
 
-  uint8_t buffer[784];
+  
   while (1) 
   {
     // capture an image by pressing a button
@@ -173,7 +172,7 @@ int main(void)
     #ifdef CONTINUOUS_STREAM
     capture_camera_img();
     //display_RGB565_img(0,0);
-    display_grayscale_img(0,0,buffer);
+    display_grayscale_img(0,0,cnn_buffer);
     #endif
   }
 

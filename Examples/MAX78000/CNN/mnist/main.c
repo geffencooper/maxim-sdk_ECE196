@@ -43,7 +43,42 @@
 #include "cnn.h"
 #include "sampledata.h"
 
+/***** Includes *****/
+// standard C libraries
+#include <stdlib.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+
+// helper libraries for peripherals
+#include "mxc_device.h"
+#include "mxc_sys.h"
+#include "bbfc_regs.h"
+#include "fcr_regs.h"
+#include "icc.h"
+#include "led.h"
+#include "tft.h"
+#include "pb.h"
+#include "mxc_delay.h"
+#include "camera.h"
+#include "bitmap.h"
+#include "camera_tft_funcs.h"
+#include "dma.h"
+
 volatile uint32_t cnn_time; // Stopwatch
+/***** Definitions *****/
+#define TFT_BUFF_SIZE   50    // TFT buffer size
+#define CAMERA_FREQ   (10 * 1000 * 1000)
+
+// capture one image at a time or a continuous stream
+//#define CAPTURE_IMAGE
+#define CONTINUOUS_STREAM
+
+/***** Globals *****/
+uint32_t cnn_buffer[196];
+
+// buffer for touch screen text
+char buff[TFT_BUFF_SIZE];
 
 void fail(void)
 {
@@ -59,7 +94,8 @@ void load_input(void)
 {
   // This function loads the sample data input -- replace with actual data
 
-  memcpy32((uint32_t *) 0x50400000, input_0, 196);
+  //memcpy32((uint32_t *) 0x50400000, input_0, 196);
+  memcpy32((uint32_t *) 0x50400000, cnn_buffer, 196);
 }
 
 // Expected output of layer 4 for mnist given the sample input
@@ -100,6 +136,35 @@ int main(void)
   MXC_SYS_Clock_Select(MXC_SYS_CLOCK_IPO);
   SystemCoreClockUpdate();
 
+  // Initialize DMA for camera interface
+	MXC_DMA_Init();
+	int dma_channel = MXC_DMA_AcquireChannel();
+  // Initialize TFT display.
+  printf("Init LCD.\n");
+  init_LCD();
+  MXC_TFT_ClearScreen();
+  MXC_TFT_ShowImage(0, 0, img_1_bmp);
+  // Initialize camera.
+  printf("Init Camera.\n");
+  camera_init(CAMERA_FREQ);
+  set_image_dimensions(28*2, 28*2);
+  /* Set the screen rotation because camera flipped*/
+	MXC_TFT_SetRotation(SCREEN_ROTATE);
+  // Setup the camera image dimensions, pixel format and data acquiring details.
+  // four bytes because each pixel is 2 bytes, can get 2 pixels at a time
+	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA, dma_channel);
+	if (ret != STATUS_OK) 
+  {
+		printf("Error returned from setting up camera. Error %d\n", ret);
+		return -1;
+	}
+  MXC_Delay(1000000);
+  MXC_TFT_SetPalette(logo_white_bg_darkgrey_bmp);
+  MXC_TFT_SetBackGroundColor(4);
+  capture_camera_img();
+  display_grayscale_img(100,150,cnn_buffer);
+  
+
   printf("Waiting...\n");
 
   // DO NOT DELETE THIS LINE:
@@ -108,38 +173,57 @@ int main(void)
   // Enable peripheral, enable CNN interrupt, turn on CNN clock
   // CNN clock: 50 MHz div 1
   cnn_enable(MXC_S_GCR_PCLKDIV_CNNCLKSEL_PCLK, MXC_S_GCR_PCLKDIV_CNNCLKDIV_DIV1);
-
+  /* Configure P2.5, turn on the CNN Boost */
+  //cnn_boost_enable(MXC_GPIO2, MXC_GPIO_PIN_5);
   printf("\n*** CNN Inference Test ***\n");
 
   cnn_init(); // Bring state machine into consistent state
   cnn_load_weights(); // Load kernels
   cnn_load_bias();
   cnn_configure(); // Configure state machine
-  load_input(); // Load data input
-  cnn_start(); // Start CNN processing
+    
 
-  while (cnn_time == 0)
-    __WFI(); // Wait for CNN
+  while(true)
+  {
+    capture_camera_img();
+    display_grayscale_img(100,150,cnn_buffer);
+    
+    // Enable CNN clock
+        MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_CNN);
 
-  if (check_output() != CNN_OK) fail();
-  softmax_layer();
+        cnn_init(); // Bring state machine into consistent state
+        //cnn_load_weights(); // No need to reload kernels
+        //cnn_load_bias(); // No need to reload bias
+        cnn_configure(); // Configure state machine
 
-  printf("\n*** PASS ***\n\n");
+        load_input();
+        cnn_start();
+        
+    while (cnn_time == 0)
+      __WFI(); // Wait for CNN
 
-#ifdef CNN_INFERENCE_TIMER
-  printf("Approximate inference time: %u us\n\n", cnn_time);
-#endif
+    //if (check_output() != CNN_OK) fail();
+    softmax_layer();
+cnn_stop();
+        // Disable CNN clock to save power
+        MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_CNN);
+    printf("\n*** PASS ***\n\n");
 
-  cnn_disable(); // Shut down CNN clock, disable peripheral
+  #ifdef CNN_INFERENCE_TIMER
+    printf("Approximate inference time: %u us\n\n", cnn_time);
+  #endif
 
-  printf("Classification results:\n");
-  for (i = 0; i < CNN_NUM_OUTPUTS; i++) {
-    digs = (1000 * ml_softmax[i] + 0x4000) >> 15;
-    tens = digs % 10;
-    digs = digs / 10;
-    printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
+    //cnn_disable(); // Shut down CNN clock, disable peripheral
+
+    printf("Classification results:\n");
+    for (i = 0; i < CNN_NUM_OUTPUTS; i++) {
+      digs = (1000 * ml_softmax[i] + 0x4000) >> 15;
+      tens = digs % 10;
+      digs = digs / 10;
+      printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
+    }
+    printf("\033[0;0f");
   }
-
   return 0;
 }
 

@@ -77,6 +77,8 @@ uint32_t input_2_camera[1024]; // 4096 blue px
 // buffer for touch screen text
 char buff[TFT_BUFF_SIZE];
 
+int8_t cnn_buffer[784];
+
 int main(void)
 {
   // Enable cache

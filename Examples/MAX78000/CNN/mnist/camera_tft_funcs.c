@@ -365,7 +365,7 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
       uint16_t G = (Y & 0x00FC);
       G = (((G & 0xE0) >> 5) | ((G & 0x1C) << 11));
       uint16_t B = ((Y & 0x00F8) << 5);
-      //((uint16_t*)raw)[w*i+j] = (R | G | B); // edit the raw frame buffer to grayscale, no downsampling
+      ((uint16_t*)raw)[w*i+j] = (R | G | B); // edit the raw frame buffer to grayscale, no downsampling
 
       // decimate by getting pixel from every other row/col (even indices)
       if(((i&1) == 0) && ((j&1) == 0))
@@ -377,24 +377,24 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
         // col is divisible by 8, we only get every other index so we have extracted 4 bytes
         if((j&7) == 0)
         {
-          printf("%08X ", ((uint32_t*)cnn_buffer)[(w>>1)*(i>>3)+(j>>3)]);
+          //printf("%08X ", ((uint32_t*)cnn_buffer)[(w>>1)*(i>>3)+(j>>3)]);
         }
         // uncomment this to visualize downsampling
-        ((uint16_t*)raw)[(w>>1)*(i>>1)+(j>>1)] = (R | G | B);
+        //((uint16_t*)raw)[(w>>1)*(i>>1)+(j>>1)] = (R | G | B);
       }
     }
     // only even columns
     if(((i&1) == 0))
     {
-      printf("\n");
+      //printf("\n");
     }
   }
-  printf("\033[0;0f"); // escape sequence to move cursor to top left corner, keeps stdout fixed
+  //printf("\033[0;0f"); // escape sequence to move cursor to top left corner, keeps stdout fixed
   
   // display the image
   //MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
   
-  MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h/2, w/2);
+  MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
 }
 
 
