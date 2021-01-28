@@ -308,7 +308,7 @@ void display_RGB888_img(uint32_t *data0, uint32_t *data1, uint32_t *data2, int l
 }
 
 
-void display_grayscale_img(int x_coord, int y_coord)
+void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer)
 {
   uint8_t   *raw;
 	uint32_t  imgLen;
@@ -316,13 +316,69 @@ void display_grayscale_img(int x_coord, int y_coord)
 
   // Get the details of the image from the camera driver.
 	camera_get_image(&raw, &imgLen, &w, &h);
+  //printf("len: %i\n", imgLen);
+  // convert from YUV422 to RGB565 in gray scale
+  /*
+    YUV422 format:
 
-  displaySub(x_coord, y_coord, w, h);
+    2 px 2px
+    UYVY UYVY ...   1px = 2byte, each Y, U, V is 1 byte
 
-  for (int y = 0; y < h; y++) 
+    Y = luminance (grayscale), 8 bits
+
+    RGB grayscale means R=G=B, in RGB565 2R=G=2B
+    R = B = Y & 0xF8 (5 bit) G = Y & FC (6 bit);
+
+  */
+  
+
+  // for(int i = 0; i < imgLen/4; i++)
+  // {
+  //   uint8_t Y = *(raw); // get the Y byte which is every other byte
+  //   *((uint16_t*)raw) = ( ((Y & 0xF8) << 8) | (((Y & 0xFC) << 3)) | ((Y & 0xF8) >> 3) );
+  //   raw+=2; // go to the next pixel (increments by 2)
+  //   //printf("%p\n", raw);
+  // }
+  #define RED_PX 0x00F8;
+  #define GREEN_PX 0xE003;
+  #define BLUE_PX 0x1F00;
+
+  int row = 0;
+  int col = 0;
+  for(int i = 0; i < w; i++)
   {
-    print_line(&raw[y * w], w);
+    for(int j = 0; j < h; j++)
+    {
+      uint16_t Y = ((uint16_t*)raw)[w*i+j] & 0x00FF;
+      uint16_t R = (Y & 0x00F8);
+      uint16_t G = (Y & 0x00FC);
+      G = (((G & 0xE0) >> 5) | ((G & 0x1C) << 11));
+      uint16_t B = ((Y & 0x00F8) << 5);
+      //((uint16_t*)raw)[w*i+j] = ( ((Y & 0xF8) << 8) | (((Y & 0xFC) << 3)) | ((Y & 0xF8) >> 3) );
+      ((uint16_t*)raw)[w*i+j] = (R | G | B);
+      cnn_buffer[(w/2)*row+col] = 
+
+      // ((uint16_t*)raw)[w*i+j] = GREEN_PX;
+      //col++;
+    }
+    row++;
   }
+  //printf("W: %i H: %i LEN: %i\n", w, h, imgLen);
+  
+  // int count = 0;
+  // for(int i = 0; i < w; i++)
+  // {
+  //   for(int j = 0; j < h; j++)
+  //   {
+  //     printf("%04X ", (((uint16_t*)raw)[w*i+j]));
+  //     count++;
+  //   }
+  //   printf("\n");
+  // }
+  // printf("\033[0;0f");
+
+  // display the image
+  MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
 }
 
 

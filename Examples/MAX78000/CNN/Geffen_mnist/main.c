@@ -58,9 +58,11 @@
 #include "camera.h"
 #include "bitmap.h"
 #include "camera_tft_funcs.h"
+#include "dma.h"
 
 /***** Definitions *****/
 #define TFT_BUFF_SIZE   50    // TFT buffer size
+#define CAMERA_FREQ   (10 * 1000 * 1000)
 
 // capture one image at a time or a continuous stream
 //#define CAPTURE_IMAGE
@@ -82,6 +84,10 @@ int main(void)
   MXC_SYS_Clock_Select(MXC_SYS_CLOCK_IPO);
   SystemCoreClockUpdate();
 
+  // Initialize DMA for camera interface
+	MXC_DMA_Init();
+	int dma_channel = MXC_DMA_AcquireChannel();
+
   // Initialize TFT display.
   printf("Init LCD.\n");
   init_LCD();
@@ -91,14 +97,14 @@ int main(void)
 
   // Initialize camera.
   printf("Init Camera.\n");
-  camera_init();
+  camera_init(CAMERA_FREQ);
   
   #ifdef CAPTURE_IMAGE
  set_image_dimensions(64,64);
 
   // Setup the camera image dimensions, pixel format and data acquiring details.
   // 3 bytes becase each pixel is 3 bytes
-	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB888, FIFO_THREE_BYTE, USE_DMA);
+	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB888, FIFO_THREE_BYTE, USE_DMA, dma_channel);
 	if (ret != STATUS_OK) 
   {
 		printf("Error returned from setting up camera. Error %d\n", ret);
@@ -108,13 +114,13 @@ int main(void)
   #endif
 
   #ifdef CONTINUOUS_STREAM
-  set_image_dimensions(100, 100);
+  set_image_dimensions(56*2, 56*2);
 
   /* Set the screen rotation because camera flipped*/
-	//MXC_TFT_SetRotation(SCREEN_ROTATE);
+	MXC_TFT_SetRotation(SCREEN_ROTATE);
   // Setup the camera image dimensions, pixel format and data acquiring details.
   // four bytes because each pixel is 2 bytes, can get 2 pixels at a time
-	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_GRAYSCALE, FIFO_FOUR_BYTE, USE_DMA);
+	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA, dma_channel);
 	if (ret != STATUS_OK) 
   {
 		printf("Error returned from setting up camera. Error %d\n", ret);
@@ -166,7 +172,8 @@ int main(void)
     
     #ifdef CONTINUOUS_STREAM
     capture_camera_img();
-    display_grayscale_img(0,0);
+    //display_RGB565_img(0,0);
+    display_grayscale_img(0,0,NULL);
     #endif
   }
 

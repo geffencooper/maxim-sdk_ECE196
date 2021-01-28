@@ -165,7 +165,7 @@ void display_RGB565_img(int x_coord, int y_coord);
 
     Return: none
 */
-void display_grayscale_img(int x_coord, int y_coord);
+void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer);
 
 
 /*
