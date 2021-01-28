@@ -335,11 +335,12 @@ void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer)
   #define GREEN_PX 0xE003;
   #define BLUE_PX 0x1F00;
 
-  for(int i = 0; i < w; i++)
+  // iterate over all pixels
+  for(int i = 0; i < w; i++) // rows
   {
-    for(int j = 0; j < h; j++)
+    for(int j = 0; j < h; j++) // cols
     {
-      // extract luminance
+      // extract luminance from the YUV pixel which is 16 bits
       uint8_t Y = (((uint16_t*)raw)[w*i+j] & 0x00FF);
       
       // binary threshold, send pixels to blakc or white
@@ -361,17 +362,27 @@ void display_grayscale_img(int x_coord, int y_coord, uint8_t* cnn_buffer)
       uint16_t B = ((Y & 0x00F8) << 5);
       //((uint16_t*)raw)[w*i+j] = (R | G | B); // edit the raw frame buffer to grayscale
 
-      // downsample image on even rows and cols
+      // decimate by getting pixel from every other row/col (even indices)
       if(((i&1) == 0) && ((j&1) == 0))
       {
+        // store the pixel to the CNN buffer, make sure to divide the width by 2
+        // also divide the indices by two because resulting image has 1/2 the dimensions
         cnn_buffer[(w>>1)*(i>>1)+(j>>1)] = Y;
-        printf("%02X ", cnn_buffer[(w>>1)*(i>>1)+(j>>1)]);
 
+        // col is divisible by 8, we only get every other index so we have extracted 4 bytes
+        if((j&7) == 0)
+        {
+          printf("%08X ", ((uint32_t*)cnn_buffer)[(w>>1)*(i>>3)+(j>>3)]);
+        }
         // uncomment this to visualize downsampling
         ((uint16_t*)raw)[(w>>1)*(i>>1)+(j>>1)] = (R | G | B);
       }
     }
-    printf("");
+    // only even columns
+    if(((i&1) == 0))
+    {
+      printf("\n");
+    }
   }
   printf("\033[0;0f"); // escape sequence to move cursor to top left corner, keeps stdout fixed
   
