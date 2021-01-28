@@ -1,5 +1,5 @@
 ################################################################################
- # Copyright (C) 2020 Maxim Integrated Products, Inc., All Rights Reserved.
+ # Copyright (C) Maxim Integrated Products, Inc., All Rights Reserved.
  #
  # Permission is hereby granted, free of charge, to any person obtaining a
  # copy of this software and associated documentation files (the "Software"),
@@ -52,6 +52,7 @@ COMPILER=GCC
 # Specify the board used
 ifeq "$(BOARD)" ""
 BOARD=EvKit_V1
+#BOARD=FTHR_RevA
 endif
 
 # This is the path to the CMSIS root directory
@@ -69,21 +70,30 @@ export CMSIS_ROOT
 
 # Source files for this test (add path to VPATH below)
 SRCS  = main.c
+SRCS += cnn.c
 SRCS += softmax.c
 SRCS += TFT/all_imgs.c
 SRCS += camera_tft_funcs.c
 
 # Where to find source files for this test
 VPATH  = .
+ifeq "$(MAXIM_PATH)" ""
+VPATH += ../Common/
+else
+VPATH += /$(subst \,/,$(subst :,,$(MAXIM_PATH))/Examples/$(TARGET)/CNN/Common/)
+endif
+VPATH += $(CMSIS_ROOT)/Device/Maxim/$(TARGET_UC)/Source
 VPATH += ./Camera/
-VPATH += ../Common
 VPATH += ./Camera/src
 VPATH += ./TFT
-VPATH += $(CMSIS_ROOT)/Device/Maxim/$(TARGET_UC)/Source
 # Where to find header files for this test
 IPATH  = .
+ifeq "$(MAXIM_PATH)" ""
+IPATH += ../Common/
+else
+IPATH += /$(subst \,/,$(subst :,,$(MAXIM_PATH))/Examples/$(TARGET)/CNN/Common/)
+endif
 IPATH += ./Camera/
-IPATH += ../Common
 IPATH += ./Camera/include
 IPATH += ./TFT
 
@@ -93,7 +103,7 @@ PROJ_CFLAGS+=-DMXC_ASSERT_ENABLE
 PROJ_CFLAGS+=-DARM_MATH_CM4
 
 # Enable all warnings
-PROJ_CFLAGS+=-Wall
+PROJ_CFLAGS+=-Wall -Wcast-align
 
 # Specify the target revision to override default
 # "A2" in ASCII
@@ -110,7 +120,7 @@ PROJ_CFLAGS+=-Wall
 #STARTUPFILE=start.S
 
 # Override the default optimization level using this variable
-MXC_OPTIMIZE_CFLAGS=-O0
+MXC_OPTIMIZE_CFLAGS=-O1
 
 ################################################################################
 # Include external library makefiles here

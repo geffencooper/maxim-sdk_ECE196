@@ -32,11 +32,8 @@
 * ownership rights.
 *******************************************************************************/
 
-/**
- * @file    main.c
- * @brief   Camera Interface
- * @details experimenting/understanding the camera interface
- */
+// mnist
+// Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix mnist --checkpoint-file trained/ai85-mnist-qat8-q.pth.tar --config-file networks/mnist-chw-ai85.yaml --softmax --device MAX78000 --compact-data --mexpress --timer 0 --display-checkpoint
 
 /***** Includes *****/
 // standard C libraries
@@ -59,25 +56,46 @@
 #include "bitmap.h"
 #include "camera_tft_funcs.h"
 #include "dma.h"
+#include "cnn.h"
+#include "mxc.h"
 
+volatile uint32_t cnn_time; // Stopwatch
 /***** Definitions *****/
 #define TFT_BUFF_SIZE   50    // TFT buffer size
 #define CAMERA_FREQ   (10 * 1000 * 1000)
 
-// capture one image at a time or a continuous stream
-//#define CAPTURE_IMAGE
-#define CONTINUOUS_STREAM
-
 /***** Globals *****/
+// mnist data is 28 x 28 px = 784 px --> 8 bits each --> 784 bytes. 784/4 = 196 4 byte chunks
 uint32_t cnn_buffer[196];
 
 // buffer for touch screen text
 char buff[TFT_BUFF_SIZE];
 
+void load_input(void)
+{
+  // This function loads the sample data input -- replace with actual data
+
+  //memcpy32((uint32_t *) 0x50400000, input_0, 196);
+  memcpy32((uint32_t *) 0x50400000, cnn_buffer, 196);
+}
+
+// Classification layer:
+static int32_t ml_data[CNN_NUM_OUTPUTS];
+static q15_t ml_softmax[CNN_NUM_OUTPUTS];
+
+void softmax_layer(void)
+{
+  cnn_unload((uint32_t *) ml_data);
+  softmax_q17p14_q15((const q31_t *) ml_data, CNN_NUM_OUTPUTS, ml_softmax);
+}
+
 int main(void)
 {
+  int i;
+  int digs, tens;
+
   // Enable cache
-  MXC_ICC_Enable(MXC_ICC0);
+  MXC_ICC_Enable(MXC_ICC0); 
 
   // Switch to 100 MHz clock
   MXC_SYS_Clock_Select(MXC_SYS_CLOCK_IPO);
@@ -91,90 +109,97 @@ int main(void)
   printf("Init LCD.\n");
   init_LCD();
   MXC_TFT_ClearScreen();
-
   MXC_TFT_ShowImage(0, 0, img_1_bmp);
 
   // Initialize camera.
   printf("Init Camera.\n");
   camera_init(CAMERA_FREQ);
-  
-  #ifdef CAPTURE_IMAGE
- set_image_dimensions(64,64);
+  set_image_dimensions(28*2, 28*2); // gets decimated to 28x28
 
-  // Setup the camera image dimensions, pixel format and data acquiring details.
-  // 3 bytes becase each pixel is 3 bytes
-	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB888, FIFO_THREE_BYTE, USE_DMA, dma_channel);
-	if (ret != STATUS_OK) 
-  {
-		printf("Error returned from setting up camera. Error %d\n", ret);
-		return -1;
-	}
-  int frame = 0;
-  #endif
-
-  #ifdef CONTINUOUS_STREAM
-  set_image_dimensions(28*2, 28*2);
-  
   /* Set the screen rotation because camera flipped*/
 	MXC_TFT_SetRotation(SCREEN_ROTATE);
+
   // Setup the camera image dimensions, pixel format and data acquiring details.
   // four bytes because each pixel is 2 bytes, can get 2 pixels at a time
-	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA, dma_channel);
+	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_YUV422, FIFO_FOUR_BYTE, USE_DMA, dma_channel);
 	if (ret != STATUS_OK) 
   {
 		printf("Error returned from setting up camera. Error %d\n", ret);
 		return -1;
 	}
-  #endif
-  
   MXC_Delay(1000000);
   MXC_TFT_SetPalette(logo_white_bg_darkgrey_bmp);
   MXC_TFT_SetBackGroundColor(4);
+  capture_camera_img();
+  display_grayscale_img(100,150,cnn_buffer);
+  
 
-  #ifdef CAPTURE_IMAGE
-  memset(buff,32,TFT_BUFF_SIZE);
-  sprintf(buff, "MAXIM INTEGRATED             ");
-  TFT_Print(buff, 55, 50, urw_gothic_13_white_bg_grey);
+  printf("Waiting...\n");
 
-  sprintf(buff, "Camera Interface        ");
-  TFT_Print(buff, 55, 90, urw_gothic_12_white_bg_grey);
+  // DO NOT DELETE THIS LINE:
+  MXC_Delay(SEC(2)); // Let debugger interrupt if needed
 
-  sprintf(buff, "PRESS PB1 TO START!          ");
-  TFT_Print(buff, 55, 130, urw_gothic_13_white_bg_grey);
+  // Enable peripheral, enable CNN interrupt, turn on CNN clock
+  // CNN clock: 50 MHz div 1
+  cnn_enable(MXC_S_GCR_PCLKDIV_CNNCLKSEL_PCLK, MXC_S_GCR_PCLKDIV_CNNCLKDIV_DIV1);
+  /* Configure P2.5, turn on the CNN Boost */
+  //cnn_boost_enable(MXC_GPIO2, MXC_GPIO_PIN_5);
+  printf("\n*** CNN Inference Test ***\n");
+
+  cnn_init(); // Bring state machine into consistent state
+  cnn_load_weights(); // Load kernels
+  cnn_load_bias();
+  cnn_configure(); // Configure state machine
+    
+
+  while(true)
+  {
+    capture_camera_img();
+    display_grayscale_img(100,150,cnn_buffer);
+    
+    // Enable CNN clock
+    MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_CNN);
+
+    cnn_init(); // Bring state machine into consistent state
+    cnn_configure(); // Configure state machine
+
+    load_input();
+    cnn_start();
+        
+    while (cnn_time == 0)
+      __WFI(); // Wait for CNN
+
+    //if (check_output() != CNN_OK) fail();
+    softmax_layer();
+
+    cnn_stop();
+    // Disable CNN clock to save power
+    MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_CNN);
+
+  #ifdef CNN_INFERENCE_TIMER
+    printf("Approximate inference time: %u us\n\n", cnn_time);
   #endif
 
-  
-  while (1) 
-  {
-    // capture an image by pressing a button
-    #ifdef CAPTURE_IMAGE
-    printf("********** Press PB1 to capture an image **********\r\n");
-    while(!PB_Get(0));
-    MXC_TFT_ClearScreen();
+    //cnn_disable(); // Shut down CNN clock, disable peripheral
 
-    sprintf(buff, "CAPTURING IMAGE....           ");
-    TFT_Print(buff, 55, 110, urw_gothic_13_white_bg_grey);
-
-    // Capture a single camera frame.
-    printf("\nCapture a camera frame %d\n", ++frame);
-    capture_camera_img();
-
-    // load the buffers
-    process_RGB888_img(input_0_camera, input_1_camera, input_2_camera);
-
-    // display the image
-    display_RGB888_img(input_0_camera, input_1_camera, input_2_camera, 1024, 0, 0);
-
-    sprintf(buff, "PRESS PB1 TO CAPTURE IMAGE      ");
-    TFT_Print(buff, 10, 210, urw_gothic_12_white_bg_grey);
-    #endif
-    
-    #ifdef CONTINUOUS_STREAM
-    capture_camera_img();
-    //display_RGB565_img(0,0);
-    display_grayscale_img(0,0,cnn_buffer);
-    #endif
+    printf("Classification results:\n");
+    for (i = 0; i < CNN_NUM_OUTPUTS; i++) {
+      digs = (1000 * ml_softmax[i] + 0x4000) >> 15;
+      tens = digs % 10;
+      digs = digs / 10;
+      printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
+    }
+    printf("\033[0;0f");
   }
-
   return 0;
 }
+
+/*
+  SUMMARY OF OPS
+  Hardware: 10,883,968 ops (10,751,808 macc; 128,576 comp; 3,584 add; 0 mul; 0 bitwise)
+
+  RESOURCE USAGE
+  Weight memory: 71,148 bytes out of 442,368 bytes total (16%)
+  Bias memory:   10 bytes out of 2,048 bytes total (0%)
+*/
+
