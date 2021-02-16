@@ -35,6 +35,8 @@
 // mnist
 // Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix mnist --checkpoint-file trained/ai85-mnist-qat8-q.pth.tar --config-file networks/mnist-chw-ai85.yaml --softmax --device MAX78000 --compact-data --mexpress --timer 0 --display-checkpoint
 
+#define EV
+
 /***** Includes *****/
 // standard C libraries
 #include <stdlib.h>
@@ -49,7 +51,9 @@
 #include "fcr_regs.h"
 #include "icc.h"
 #include "led.h"
+#ifdef EV
 #include "tft.h"
+#endif
 #include "pb.h"
 #include "mxc_delay.h"
 #include "camera.h"
@@ -58,6 +62,7 @@
 #include "dma.h"
 #include "cnn.h"
 #include "mxc.h"
+
 
 volatile uint32_t cnn_time; // Stopwatch
 /***** Definitions *****/
@@ -107,9 +112,11 @@ int main(void)
 
   // Initialize TFT display.
   printf("Init LCD.\n");
+  #ifdef EV
   init_LCD();
   MXC_TFT_ClearScreen();
   MXC_TFT_ShowImage(0, 0, img_1_bmp);
+  #endif
 
   // Initialize camera.
   printf("Init Camera.\n");
@@ -117,7 +124,9 @@ int main(void)
   set_image_dimensions(28*2, 28*2); // gets decimated to 28x28
 
   /* Set the screen rotation because camera flipped*/
+  #ifdef EV
 	MXC_TFT_SetRotation(SCREEN_ROTATE);
+  #endif
 
   // Setup the camera image dimensions, pixel format and data acquiring details.
   // four bytes because each pixel is 2 bytes, can get 2 pixels at a time
@@ -128,10 +137,12 @@ int main(void)
 		return -1;
 	}
   MXC_Delay(1000000);
+  #ifdef EV
   MXC_TFT_SetPalette(logo_white_bg_darkgrey_bmp);
   MXC_TFT_SetBackGroundColor(4);
   capture_camera_img();
   display_grayscale_img(100,150,cnn_buffer);
+  #endif
   
 
   printf("Waiting...\n");

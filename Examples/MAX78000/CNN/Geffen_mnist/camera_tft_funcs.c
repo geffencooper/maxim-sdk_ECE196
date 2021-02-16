@@ -36,18 +36,21 @@
  * @brief   camera and touch screen helper function
  * @details consolidate the Maxim Integrated provided functions into a separate file
  */
-
+#define EV
 /***** Includes *****/
 #include "camera_tft_funcs.h"
+#ifdef EV
 #include "tft.h"
+#endif
 #include "camera.h"
 
 // variables
 static int IMAGE_SIZE_X;
 static int IMAGE_SIZE_Y;
 
+#ifdef EV
 mxc_gpio_cfg_t tft_reset_pin = {MXC_GPIO0, MXC_GPIO_PIN_19, MXC_GPIO_FUNC_OUT, MXC_GPIO_PAD_NONE, MXC_GPIO_VSSEL_VDDIOH};
-
+#endif
 static const uint8_t camera_settings[][2] = {
     {0x0e, 0x08}, // Sleep mode
     {0x69, 0x52}, // BLC window selection, BLC enable (default is 0x12)
@@ -246,17 +249,20 @@ void display_RGB565_img(int x_coord, int y_coord)
 
   // Get the details of the image from the camera driver.
 	camera_get_image(&raw, &imgLen, &w, &h);
+  #ifdef EV
 	MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
+  #endif
 }
 
 /***** LCD Functions *****/
+#ifdef EV
 void init_LCD()
 {
   printf("Init LCD.\n");
   MXC_TFT_Init(MXC_SPI0, 1, &tft_reset_pin, NULL);
   MXC_TFT_ClearScreen();
 }
-
+#endif
 
 void display_RGB888_img(uint32_t *data0, uint32_t *data1, uint32_t *data2, int length, int x_coord, int y_coord) 
 {
@@ -292,7 +298,9 @@ void display_RGB888_img(uint32_t *data0, uint32_t *data1, uint32_t *data2, int l
       g = ptr1[j];
       b = ptr2[j];        
       color  = (0x01000100 | ((b & 0xF8) << 13) | ((g & 0x1C) << 19) | ((g & 0xE0) >> 5) | (r & 0xF8));
+      #ifdef EV
       MXC_TFT_WritePixel(x * scale, y * scale, scale, scale, color);
+      #endif
       x += 1;
       if (x >= (IMAGE_SIZE_X + x_coord)) 
       {
@@ -393,11 +401,12 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
   
   // display the image
   //MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
-  
+  #ifdef EV
   MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
+  #endif
 }
 
-
+#ifdef EV
 void TFT_Print(char *str, int x, int y, int font) 
 {
   // fonts id
@@ -407,7 +416,7 @@ void TFT_Print(char *str, int x, int y, int font)
 
   MXC_TFT_PrintFont(x, y, font, &text, NULL);
 }
-
+#endif
 
 
 
