@@ -63,9 +63,9 @@ int main(void)
     
     while (1) {
         LED_On(LED1);
-        MXC_Delay(500000);
+        MXC_Delay(1000000);
         LED_Off(LED1);
-        MXC_Delay(500000);
+        MXC_Delay(1000000);
         printf("count : %d\n", count++);
     }
 }

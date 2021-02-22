@@ -60,17 +60,20 @@
 #include "mxc.h"
 #include "sampledata.h"
 
+
+volatile uint32_t cnn_time; // Stopwatch
+
 /***** Definitions *****/
 #define TFT_BUFF_SIZE   50    // TFT buffer size
 #define CAMERA_FREQ   (10 * 1000 * 1000)
 
 /***** Globals *****/
+uint32_t cnn_buffer[4096];
 // buffer for touch screen text
 char buff[TFT_BUFF_SIZE];
-uint32_t cnn_buffer[4096];
 volatile uint32_t cnn_time; // Stopwatch
 
-// Data input: HWC 1x128x128 (16384 bytes):
+// Data input: CHW 1x128x128 (16384 bytes):
 static const uint32_t input_0[] = SAMPLE_INPUT_0;
 void load_input(void)
 {
@@ -79,14 +82,12 @@ void load_input(void)
   int i;
   //const uint32_t *in0 = input_0;
   const uint32_t *in0 = cnn_buffer;
-  //printf("4byte: %i\n", *in0);
-  for (i = 0; i < 16384; i++) {
-    //printf("%i\n",i);
+
+  for (i = 0; i < 4096; i++) {
     while (((*((volatile uint32_t *) 0x50000004) & 1)) != 0); // Wait for FIFO 0
-    *((volatile uint32_t *) 0x50000008) = cnn_buffer[i];//*in0++; // Write FIFO 0
-    //printf("%i\n",*((volatile uint32_t *) 0x50000008));
+    *((volatile uint32_t *) 0x50000008) = *in0++; // Write FIFO 0
+    //printf("%i    %i\n", cnn_buffer[i], *((volatile uint32_t *) 0x50000008));
   }
-  //printf("loaded\n");
 }
 
 // Expected output of layer 7 for geffnet given the sample input
@@ -105,7 +106,6 @@ static q15_t ml_softmax[CNN_NUM_OUTPUTS];
 void softmax_layer(void)
 {
   cnn_unload((uint32_t *) ml_data);
-  printf("data: %i\n",*ml_data);
   softmax_q17p14_q15((const q31_t *) ml_data, CNN_NUM_OUTPUTS, ml_softmax);
 }
 
@@ -120,7 +120,7 @@ int main(void)
   MXC_SYS_Clock_Select(MXC_SYS_CLOCK_IPO);
   SystemCoreClockUpdate();
 
-  // Initialize DMA for camera interface
+ // Initialize DMA for camera interface
 	MXC_DMA_Init();
 	int dma_channel = MXC_DMA_AcquireChannel();
 
@@ -146,13 +146,13 @@ int main(void)
 		printf("Error returned from setting up camera. Error %d\n", ret);
 		return -1;
 	}
+
   MXC_Delay(1000000);
   MXC_TFT_SetPalette(logo_white_bg_darkgrey_bmp);
   MXC_TFT_SetBackGroundColor(4);
   capture_camera_img();
   display_grayscale_img(100,100,cnn_buffer);
   
-
   printf("Waiting...\n");
 
   // DO NOT DELETE THIS LINE:
@@ -168,16 +168,18 @@ int main(void)
   cnn_load_weights(); // Load kernels
   cnn_load_bias();
   cnn_configure(); // Configure state machine
-  cnn_start(); // Start CNN processing
-  load_input(); // Load data input via FIFO
+  //cnn_start(); // Start CNN processing
+  //load_input(); // Load data input via FIFO
+
   area_t clear_word = {10, 100, 200, 20};
   int last_state = 0;
-while(1)
-{
-  capture_camera_img();
-  display_grayscale_img(100,100,cnn_buffer);
+
+  while(true)
+  {
+    capture_camera_img();
+    display_grayscale_img(100,100,cnn_buffer);
     
-   // Enable CNN clock
+    // Enable CNN clock
     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_CNN);
 
     cnn_init(); // Bring state machine into consistent state
@@ -185,23 +187,24 @@ while(1)
 
     cnn_start();
     load_input();
+        
+    while (cnn_time == 0)
+      __WFI(); // Wait for CNN
 
-  while (cnn_time == 0)
-    __WFI(); // Wait for CNN
+    //if (check_output() != CNN_OK) fail();
+    softmax_layer();
 
- // if (check_output() != CNN_OK) fail();
-  softmax_layer();
-  
-  //cnn_stop();
+    cnn_stop();
     // Disable CNN clock to save power
-    //MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_CNN);
+    MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_CNN);
 
   #ifdef CNN_INFERENCE_TIMER
     printf("Approximate inference time: %u us\n\n", cnn_time);
   #endif
 
+    //cnn_disable(); // Shut down CNN clock, disable peripheral
 
-  printf("Classification results:\n");
+    printf("Classification results:\n");
     int max = 0;
     int max_i = 0;
     for (i = 0; i < CNN_NUM_OUTPUTS; i++) {
@@ -237,8 +240,8 @@ while(1)
     }
     last_state = max_i;
     printf("\033[0;0f");
+  }
 
-}
   return 0;
 }
 

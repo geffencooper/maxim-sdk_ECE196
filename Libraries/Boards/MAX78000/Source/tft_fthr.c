@@ -380,7 +380,7 @@ static void tft_spi_init(void)
 {
     int master = 1;
     int quadMode = 0;
-    int numSlaves = 2;
+    int numSlaves = 1;
     int ssPol = 0;
     unsigned int tft_hz = TFT_SPI_FREQ;
 

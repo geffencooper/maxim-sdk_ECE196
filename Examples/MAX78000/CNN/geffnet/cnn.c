@@ -33,12 +33,12 @@
 *******************************************************************************/
 
 // geffnet
-// Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix geffnet --checkpoint-file trained/geffnet_q.pth.tar --config-file networks/geffnet.yaml --fifo --device MAX78000 --softmax --compact-data --mexpress --timer 0 --display-checkpoint
+// Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix geffnet --checkpoint-file trained/geffnet_q.pth.tar --config-file networks/geffnet.yaml --device MAX78000 --fifo --softmax --compact-data --mexpress --timer 0 --display-checkpoint
 
 // DO NOT EDIT - regenerate this file instead!
 
 // Configuring 8 layers:
-// Layer 0: 1x128x128 (streaming HWC data), no pooling, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 10x128x128 output
+// Layer 0: 1x128x128 (streaming CHW data), no pooling, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 10x128x128 output
 // Layer 1: 10x128x128 (streaming HWC data), 2x2 max pool with stride 2/2, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 20x64x64 output
 // Layer 2: 20x64x64 (HWC data), 2x2 max pool with stride 2/2, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 30x32x32 output
 // Layer 3: 30x32x32 (HWC data), 2x2 max pool with stride 2/2, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 30x16x16 output
@@ -331,53 +331,53 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50100090) = 0x00010081; // Columns
   *((volatile uint32_t *) 0x50100310) = 0x00002400; // SRAM write ptr
   *((volatile uint32_t *) 0x50100410) = 0x00002000; // Write ptr mask offs
-  *((volatile uint32_t *) 0x50100590) = 0x00000b20; // Layer control
+  *((volatile uint32_t *) 0x50100590) = 0x00000b60; // Layer control
   *((volatile uint32_t *) 0x50100a10) = 0x00004800; // Layer control 2
   *((volatile uint32_t *) 0x50100610) = 0x00000048; // Mask offset and count
   *((volatile uint32_t *) 0x50100690) = 0x0000007f; // TRAM ptr max
   *((volatile uint32_t *) 0x50100710) = 0x00010001; // Mask and processor enables
   *((volatile uint32_t *) 0x50100810) = 0x00000001; // Stream processing start
-  *((volatile uint32_t *) 0x50100910) = 0x00000002; // Rollover
-  *((volatile uint32_t *) 0x50100990) = 0x00004000; // Input frame size
+  *((volatile uint32_t *) 0x50100910) = 0x0000000c; // Rollover
+  *((volatile uint32_t *) 0x50100990) = 0x00001000; // Input frame size
 
   // Layer 0 group 1
   *((volatile uint32_t *) 0x50500010) = 0x00010081; // Rows
   *((volatile uint32_t *) 0x50500090) = 0x00010081; // Columns
   *((volatile uint32_t *) 0x50500310) = 0x00002400; // SRAM write ptr
   *((volatile uint32_t *) 0x50500410) = 0x00002000; // Write ptr mask offs
-  *((volatile uint32_t *) 0x50500590) = 0x00000b20; // Layer control
+  *((volatile uint32_t *) 0x50500590) = 0x00000b60; // Layer control
   *((volatile uint32_t *) 0x50500a10) = 0x00004800; // Layer control 2
   *((volatile uint32_t *) 0x50500610) = 0x00000048; // Mask offset and count
   *((volatile uint32_t *) 0x50500690) = 0x0000007f; // TRAM ptr max
   *((volatile uint32_t *) 0x50500810) = 0x00000001; // Stream processing start
-  *((volatile uint32_t *) 0x50500910) = 0x00000002; // Rollover
-  *((volatile uint32_t *) 0x50500990) = 0x00004000; // Input frame size
+  *((volatile uint32_t *) 0x50500910) = 0x0000000c; // Rollover
+  *((volatile uint32_t *) 0x50500990) = 0x00001000; // Input frame size
 
   // Layer 0 group 2
   *((volatile uint32_t *) 0x50900010) = 0x00010081; // Rows
   *((volatile uint32_t *) 0x50900090) = 0x00010081; // Columns
   *((volatile uint32_t *) 0x50900310) = 0x00002400; // SRAM write ptr
   *((volatile uint32_t *) 0x50900410) = 0x00002000; // Write ptr mask offs
-  *((volatile uint32_t *) 0x50900590) = 0x00000b20; // Layer control
+  *((volatile uint32_t *) 0x50900590) = 0x00000b60; // Layer control
   *((volatile uint32_t *) 0x50900a10) = 0x00004800; // Layer control 2
   *((volatile uint32_t *) 0x50900610) = 0x00000048; // Mask offset and count
   *((volatile uint32_t *) 0x50900690) = 0x0000007f; // TRAM ptr max
   *((volatile uint32_t *) 0x50900810) = 0x00000001; // Stream processing start
-  *((volatile uint32_t *) 0x50900910) = 0x00000002; // Rollover
-  *((volatile uint32_t *) 0x50900990) = 0x00004000; // Input frame size
+  *((volatile uint32_t *) 0x50900910) = 0x0000000c; // Rollover
+  *((volatile uint32_t *) 0x50900990) = 0x00001000; // Input frame size
 
   // Layer 0 group 3
   *((volatile uint32_t *) 0x50d00010) = 0x00010081; // Rows
   *((volatile uint32_t *) 0x50d00090) = 0x00010081; // Columns
   *((volatile uint32_t *) 0x50d00310) = 0x00002400; // SRAM write ptr
   *((volatile uint32_t *) 0x50d00410) = 0x00002000; // Write ptr mask offs
-  *((volatile uint32_t *) 0x50d00590) = 0x00000b20; // Layer control
+  *((volatile uint32_t *) 0x50d00590) = 0x00000b60; // Layer control
   *((volatile uint32_t *) 0x50d00a10) = 0x00004800; // Layer control 2
   *((volatile uint32_t *) 0x50d00610) = 0x00000048; // Mask offset and count
   *((volatile uint32_t *) 0x50d00690) = 0x0000007f; // TRAM ptr max
   *((volatile uint32_t *) 0x50d00810) = 0x00000001; // Stream processing start
-  *((volatile uint32_t *) 0x50d00910) = 0x00000002; // Rollover
-  *((volatile uint32_t *) 0x50d00990) = 0x00004000; // Input frame size
+  *((volatile uint32_t *) 0x50d00910) = 0x0000000c; // Rollover
+  *((volatile uint32_t *) 0x50d00990) = 0x00001000; // Input frame size
 
   // Layer 1 group 0
   *((volatile uint32_t *) 0x50100014) = 0x00010081; // Rows
@@ -788,7 +788,6 @@ int cnn_configure(void)
 
 int cnn_start(void)
 {
- // printf("cnn start\n");
   cnn_time = 0;
 
   *((volatile uint32_t *) 0x50100000) = 0x0018c808; // Enable group 0

@@ -740,7 +740,9 @@ uint32_t MXC_SPI_RevA_TransHandler (mxc_spi_reva_regs_t *spi, mxc_spi_reva_req_t
         req->txCnt += MXC_SPI_WriteTXFIFO ((mxc_spi_regs_t*) spi, & (req->txData[req->txCnt]),tx_length - req->txCnt);
     }
     
+    
     remain = tx_length - req->txCnt;
+    //printf("remain: %i\n", remain);
     
     // Set the TX interrupts
     // Write the FIFO //starting here
@@ -798,12 +800,13 @@ uint32_t MXC_SPI_RevA_TransHandler (mxc_spi_reva_regs_t *spi, mxc_spi_reva_req_t
             }
         }
     }
+    //printf("txCnt: %i, tx_length: %i\n", req->txCnt, tx_length);
     // Break out once we've transmitted and received all of the data
     if ((req->rxCnt == rx_length)  && (req->txCnt == tx_length)) {
         spi->inten = 0;
         int_en = 0;
         MXC_FreeLock((uint32_t*) &states[spi_num].req);
-        
+        //printf("callback\n");
         // Callback if not NULL
         if (async && req->completeCB != NULL) {
             req->completeCB(req, E_NO_ERROR);

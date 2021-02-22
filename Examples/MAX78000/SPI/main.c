@@ -54,8 +54,8 @@
 
 
 /***** Preprocessors *****/
-#define MASTERSYNC
-// #define MASTERASYNC
+//#define MASTERSYNC
+#define MASTERASYNC
 // #define MASTERDMA
 
 /***** Definitions *****/
@@ -132,7 +132,7 @@ int main(void)
     spi_pins.ss0 = TRUE;
     spi_pins.ss1 = FALSE;
     spi_pins.ss2 = FALSE;
-    
+
 #ifdef MASTERSYNC
     printf("Performing blocking (synchronous) transactions...\n");
 #endif
@@ -142,7 +142,7 @@ int main(void)
 #ifdef MASTERDMA
     printf("Performing transactions with DMA...\n");
 #endif
-    
+
     for (i = 2; i < 17; i++) {
         // Sending out 2 to 16 bits
         
@@ -194,6 +194,7 @@ int main(void)
         
 #ifdef MASTERASYNC
         NVIC_EnableIRQ(SPI_IRQ);
+        printf("start transaction async\n");
         MXC_SPI_MasterTransactionAsync(&req);
         
         while (SPI_FLAG == 1);
@@ -244,7 +245,7 @@ int main(void)
         if (memcmp(rx_data, tx_data, sizeof(tx_data)) != 0) {
             printf("\n-->%2d Bits Transaction Failed\n", i);
             
-            while (1) {}
+            //while (1) {}
         }
         else {
             printf("-->%2d Bits Transaction Successful\n", i);
@@ -255,7 +256,7 @@ int main(void)
         if (retVal != E_NO_ERROR) {
             printf("\n-->SPI SHUTDOWN ERROR: %d\n", retVal);
             
-            while (1) {}
+            //while (1) {}
         }
     }
     
