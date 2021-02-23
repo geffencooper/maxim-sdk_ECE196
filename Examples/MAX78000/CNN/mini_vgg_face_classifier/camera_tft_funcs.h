@@ -44,11 +44,6 @@
     Other useful functions:
     tft.c/MXC_TFT_ShowImageCameraRGB565()
     camera.c/camera_get_image()
-
-    Note:
-    -the camera is flipped so you can rotate the LCD display, however
-     this will ruin how text and images are displayed so may need to set normal
-    -if using CNN then need to write to the intermediate fifos
 */
 
 #ifndef CAMERA_TFT_FUNCS
@@ -61,9 +56,7 @@
 
 /*
     Description: This function sets the image dimensions to get from the
-                 camera. The max is (X, Y) = (319, 239). Beyond, (200, 150)
-                 there is noticeable update latency. This function also sets
-                 the camera registers with the default values.
+                 camera. Beyond, (200, 150) there is noticeable update latency.
 
     Parameters: The desired X and Y dimensions
 
@@ -147,7 +140,7 @@ void display_RGB888_img(uint32_t *r_buff, uint32_t *g_buff, uint32_t *b_buff, in
                  and passes it to MXC_TFT_ShowImageCameraRGB565() which
                  writes the image data to the LCD display using RGB565. RGB565
                  means that the RGB channels are 5, 6, and 5 bits accordingly.
-                 Overall this is an even 16 bits (2 bytes). This method is much
+                 Overall this is an even 16 bits (2 bytes). This method is
                  faster than RGB888, use this for continuous streaming.
 
     Parameters: The location to display the image on the LCD (top left corner)
