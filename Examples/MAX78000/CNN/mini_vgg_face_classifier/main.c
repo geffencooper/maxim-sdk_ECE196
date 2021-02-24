@@ -60,7 +60,6 @@
 #include "mxc.h"
 #include "sampledata.h"
 
-volatile uint32_t cnn_time; // Stopwatch
 
 volatile uint32_t cnn_time; // Stopwatch
 /***** Definitions *****/
@@ -70,14 +69,6 @@ volatile uint32_t cnn_time; // Stopwatch
 /***** Globals *****/
 uint32_t cnn_buffer[1600];
 
-void fail(void)
-{
-  printf("\n*** FAIL ***\n\n");
-  while (1);
-}
-
-// 1-channel 64x64 data input (4096 bytes / 1024 32-bit words):
-// CHW 64x64, channel 0
 static const uint32_t input_0[] = SAMPLE_INPUT_0;
 
 // buffer for touch screen text
@@ -87,10 +78,9 @@ void load_input(void)
 {
   // This function loads the sample data input -- replace with actual data
 
-  //memcpy32((uint32_t *) 0x50400000, input_0, 1024);
+  //memcpy32((uint32_t *) 0x50400000, input_0, 1600);
   memcpy32((uint32_t *) 0x50400000, cnn_buffer, 1600);
 }
-
 
 // Classification layer:
 static int32_t ml_data[CNN_NUM_OUTPUTS];
@@ -182,7 +172,6 @@ int main(void)
     while (cnn_time == 0)
       __WFI(); // Wait for CNN
 
-    //if (check_output() != CNN_OK) fail();
     softmax_layer();
 
     cnn_stop();
@@ -192,8 +181,6 @@ int main(void)
   #ifdef CNN_INFERENCE_TIMER
     printf("Approximate inference time: %u us\n\n", cnn_time);
   #endif
-
-    //cnn_disable(); // Shut down CNN clock, disable peripheral
 
     printf("Classification results:\n");
     int max = 0;
@@ -238,10 +225,10 @@ int main(void)
 
 /*
   SUMMARY OF OPS
-  Hardware: 23,506,260 ops (23,211,668 macc; 294,592 comp; 0 add; 0 mul; 0 bitwise)
+  Hardware: 25,135,316 ops (24,833,684 macc; 301,632 comp; 0 add; 0 mul; 0 bitwise)
 
   RESOURCE USAGE
-  Weight memory: 189,596 bytes out of 442,368 bytes total (43%)
+  Weight memory: 152,732 bytes out of 442,368 bytes total (35%)
   Bias memory:   12 bytes out of 2,048 bytes total (1%)
 */
 

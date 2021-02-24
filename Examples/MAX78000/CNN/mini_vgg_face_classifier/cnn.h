@@ -23,10 +23,10 @@ typedef int16_t q15_t;
 
 /*
   SUMMARY OF OPS
-  Hardware: 23,506,260 ops (23,211,668 macc; 294,592 comp; 0 add; 0 mul; 0 bitwise)
+  Hardware: 25,135,316 ops (24,833,684 macc; 301,632 comp; 0 add; 0 mul; 0 bitwise)
 
   RESOURCE USAGE
-  Weight memory: 189,596 bytes out of 442,368 bytes total (43%)
+  Weight memory: 152,732 bytes out of 442,368 bytes total (35%)
   Bias memory:   12 bytes out of 2,048 bytes total (1%)
 */
 
