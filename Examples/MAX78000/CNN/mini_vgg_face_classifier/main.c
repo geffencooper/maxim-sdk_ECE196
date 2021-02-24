@@ -60,7 +60,10 @@
 #include "mxc.h"
 #include "sampledata.h"
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> b13784ed727f04d782f806197b33328d47663775
 volatile uint32_t cnn_time; // Stopwatch
 /***** Definitions *****/
 #define TFT_BUFF_SIZE   50    // TFT buffer size
@@ -104,8 +107,8 @@ int main(void)
   SystemCoreClockUpdate();
 
   // Initialize DMA for camera interface
-	MXC_DMA_Init();
-	int dma_channel = MXC_DMA_AcquireChannel();
+  MXC_DMA_Init();
+  int dma_channel = MXC_DMA_AcquireChannel();
 
   // Initialize TFT display.
   printf("Init LCD.\n");
@@ -116,19 +119,19 @@ int main(void)
   // Initialize camera.
   printf("Init Camera.\n");
   camera_init(CAMERA_FREQ);
-  set_image_dimensions(80, 80); // gets decimated to 28x28
+  set_image_dimensions(80, 80);
 
   /* Set the screen rotation because camera flipped*/
-	MXC_TFT_SetRotation(SCREEN_FLIP);
+  MXC_TFT_SetRotation(SCREEN_FLIP);
 
   // Setup the camera image dimensions, pixel format and data acquiring details.
   // four bytes because each pixel is 2 bytes, can get 2 pixels at a time
-	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_YUV422, FIFO_FOUR_BYTE, USE_DMA, dma_channel);
-	if (ret != STATUS_OK) 
+  int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_YUV422, FIFO_FOUR_BYTE, USE_DMA, dma_channel);
+  if (ret != STATUS_OK) 
   {
-		printf("Error returned from setting up camera. Error %d\n", ret);
-		return -1;
-	}
+	printf("Error returned from setting up camera. Error %d\n", ret);
+	return -1;
+  }
   MXC_Delay(1000000);
   MXC_TFT_SetPalette(logo_white_bg_darkgrey_bmp);
   MXC_TFT_SetBackGroundColor(4);
