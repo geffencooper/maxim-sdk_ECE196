@@ -60,10 +60,6 @@
 #include "mxc.h"
 #include "sampledata.h"
 
-<<<<<<< HEAD
-
-=======
->>>>>>> b13784ed727f04d782f806197b33328d47663775
 volatile uint32_t cnn_time; // Stopwatch
 /***** Definitions *****/
 #define TFT_BUFF_SIZE   50    // TFT buffer size
