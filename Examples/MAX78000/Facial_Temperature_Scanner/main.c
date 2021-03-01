@@ -48,7 +48,7 @@ int main(void)
     printf("Error: could not initialize facial scanner. Check error messages.\n");
     return -1;
   }
-  execute_ssm();
+ execute_ssm();
 }
 #ifdef MASTERDMA
         MXC_DMA_ReleaseChannel(0);

@@ -96,20 +96,24 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
   #define BLUE_PX 0x1F00;
 
   // iterate over all pixels
-  for(int i = 0; i < w; i++) // rows
+  for(int i = 0; i < h; i++) // rows
   {
-    for(int j = 0; j < h; j++) // cols
+    for(int j = 0; j < w; j++) // cols
     {
       // extract luminance from the YUV pixel which is 16 bits
-      uint8_t Y = (((uint16_t*)raw)[w*i+j] & 0x00FF);
+      uint8_t Y = (((uint16_t*)raw)[h*i+j] & 0x00FF);
       
       // represent luminance using RGB565
       uint16_t R = (Y & 0x00F8);
       uint16_t G = (Y & 0x00FC);
       G = (((G & 0xE0) >> 5) | ((G & 0x1C) << 11));
       uint16_t B = ((Y & 0x00F8) << 5);
-      ((uint16_t*)raw)[w*i+j] = (R | G | B); // edit the raw frame buffer to grayscale, no downsampling
-      cnn_buffer[(w)*(i)+(j)] = Y-128; // convert to signed
+      ((uint16_t*)raw)[h*i+j] = (R | G | B); // edit the raw frame buffer to grayscale, no downsampling
+      cnn_buffer[(h)*(i)+(j)] = Y-128; // convert to signed
+
+      // rotated version is (x, y) --> (x-xp, y-yp) --> (-(y-yp), x-xp) --> (-y+yp+xp, x-xp+yp)
+      // (h*i + j) --> (h*(j-100+150) + (-i + 150 +100))
+      cnn_buffer[(h)*(i)+(j)] = Y-128;
 
     }
   }
