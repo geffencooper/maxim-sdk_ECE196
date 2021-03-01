@@ -118,10 +118,10 @@ int main(void)
   #endif
 
   #ifdef CONTINUOUS_STREAM
-  set_image_dimensions(200, 150);
+  set_image_dimensions(100, 100);
 
   /* Set the screen rotation because camera flipped*/
-	MXC_TFT_SetRotation(SCREEN_ROTATE);
+	//MXC_TFT_SetRotation(SCREEN_ROTATE);
   // Setup the camera image dimensions, pixel format and data acquiring details.
   // four bytes because each pixel is 2 bytes, can get 2 pixels at a time
 	int ret = camera_setup(get_image_x(), get_image_y(), PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA, dma_channel);

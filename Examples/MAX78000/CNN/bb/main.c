@@ -193,30 +193,35 @@ printf("%i\n",y); // 0,0,1
 printf("%i\n",w); // 0,0,2
 printf("%i\n",h); // 0,0,3
 
-top.x = x >= 0 ? x : 0; /* rot 180 --> */ top.x = 80-top.x-w;
-top.y = y >= 0 ? y : 0; /* rot 180 --> */ //top.y = 80 - top.y;
+top.x = (x >= 0 && x < 80) ? x : 0;
+top.y = (y >= 0 && y < 80) ? y : 0;
 top.w = (top.x+w) <= 80 ? w : 80-top.x;
 top.h = 2;
-MXC_TFT_FillRect(&top, 100);
 
-bottom.x = x >= 0 ? x : 0; /* rot 180 --> */ bottom.x = 80-bottom.x-w;
-bottom.y = (y+h-2) <= 78 ? y+h-2 : 78; /* rot 180 --> */ //bottom.y = 80 - bottom.y;
-bottom.w = (bottom.x+w) <= 80 ? w : 80-bottom.x;
+bottom.x = top.x;
+bottom.y = (y+h-2) <= 78 ? y+h-2 : 78;
+bottom.w = top.w;
 bottom.h = 2;
-MXC_TFT_FillRect(&bottom, 100);
 
-left.x = x >= 0 ? x : 0; /* rot 180 --> */ left.x = 80-left.x;
-left.y = y >= 0 ? y : 0; /* rot 180 --> */ //left.y = 80-left.y-h;
+left.x = top.x;
+left.y = top.y;
 left.w = 2;
 left.h = (left.y+h) <= 80 ? h : 80-left.y;
-MXC_TFT_FillRect(&left, 100);
 
-right.x = (x+w) <= 78 ? (x+w): 78; /* rot 180 --> */ right.x = 80-right.x;
-right.y = y >= 0 ? y : 0; /* rot 180 --> */ //right.y = 80-right.y-h;
+right.x = (x+w) <= 78 ? (x+w): 78;
+right.y = top.y;
 right.w = 2;
-right.h = (right.y+h) <= 78 ? h : 78-right.y;
-MXC_TFT_FillRect(&right, 100);
+right.h = left.h;
 
+top.x = 80-top.x-top.w;
+bottom.x = 80-bottom.x-bottom.w;
+left.x = 80-left.x-2;
+right.x = 80-right.x-2;
+
+MXC_TFT_FillRect(&top, 100);
+MXC_TFT_FillRect(&bottom, 100);
+MXC_TFT_FillRect(&left, 100);
+MXC_TFT_FillRect(&right, 100);
 // the camera on the EVkit is flipped by 180 degrees so we also rotate the
 // output and CNN input. We also need to rotate the bounding box by 180.
 // top.x = (80-x-w) >= 0 ? (80-x-w) : 0;
