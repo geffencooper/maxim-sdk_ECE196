@@ -946,7 +946,7 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50100a40) = 0x00001808; // Layer control 2
   *((volatile uint32_t *) 0x50100640) = 0x63006418; // Mask offset and count
   *((volatile uint32_t *) 0x50100140) = 0x00000100; // 1D
-  *((volatile uint32_t *) 0x501007c0) = 0x00008000; // Post processing register
+  *((volatile uint32_t *) 0x501007c0) = 0x0000a000; // Post processing register
   *((volatile uint32_t *) 0x50100740) = 0xffffffff; // Mask and processor enables
 
   // Layer 12 group 1
@@ -957,7 +957,7 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50500a40) = 0x00001808; // Layer control 2
   *((volatile uint32_t *) 0x50500640) = 0x63006418; // Mask offset and count
   *((volatile uint32_t *) 0x50500140) = 0x00000100; // 1D
-  *((volatile uint32_t *) 0x505007c0) = 0x00008000; // Post processing register
+  *((volatile uint32_t *) 0x505007c0) = 0x0000a000; // Post processing register
   *((volatile uint32_t *) 0x50500740) = 0xffffffff; // Mask and processor enables
 
   // Layer 12 group 2
@@ -968,7 +968,7 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50900a40) = 0x00001808; // Layer control 2
   *((volatile uint32_t *) 0x50900640) = 0x63006418; // Mask offset and count
   *((volatile uint32_t *) 0x50900140) = 0x00000100; // 1D
-  *((volatile uint32_t *) 0x509007c0) = 0x00008000; // Post processing register
+  *((volatile uint32_t *) 0x509007c0) = 0x0000a000; // Post processing register
   *((volatile uint32_t *) 0x50900740) = 0xffffffff; // Mask and processor enables
 
   // Layer 12 group 3
@@ -979,7 +979,7 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50d00a40) = 0x00001808; // Layer control 2
   *((volatile uint32_t *) 0x50d00640) = 0x63006418; // Mask offset and count
   *((volatile uint32_t *) 0x50d00140) = 0x00000100; // 1D
-  *((volatile uint32_t *) 0x50d007c0) = 0x00008000; // Post processing register
+  *((volatile uint32_t *) 0x50d007c0) = 0x0000a000; // Post processing register
   *((volatile uint32_t *) 0x50d00740) = 0xffffffff; // Mask and processor enables
 
 

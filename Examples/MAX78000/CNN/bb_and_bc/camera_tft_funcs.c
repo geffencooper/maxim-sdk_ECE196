@@ -308,6 +308,50 @@ void display_RGB888_img(uint32_t *data0, uint32_t *data1, uint32_t *data2, int l
 }
 
 
+void hist_eq(uint8_t* img, int w, int h)
+{
+  uint8_t hist[256] = {0};
+  uint8_t cdf[256] = {0};
+
+  // generate the histogram
+  for(int i = 0; i < h; i++) // rows
+  {
+    for(int j = 0; j < w; j++) // cols
+    {
+      uint8_t Y = (((uint16_t*)img)[h*i+j] & 0x00FF);
+      hist[Y] +=1;
+    }
+  }
+
+  uint16_t total_px = w*h;
+  int curr = 0;
+  // generate the CDF from the histogram
+  for(int i = 0; i < 256; i++) // rows
+  { 
+    curr += hist[i];
+    cdf[i] = (curr*255)/total_px;
+    // if(i == 0)
+    // {
+    //   cdf[i] = hist[0];
+    // }
+    // else
+    // {
+    //   cdf[i] = ((cdf[i-1]+hist[i])*255)/total_px;
+    // }
+  }
+
+  for(int i = 0; i < h; i++) // rows
+  {
+    for(int j = 0; j < w; j++) // cols
+    {
+      uint8_t Y = (((uint16_t*)img)[h*i+j] & 0x00FF);
+      uint16_t left = (((uint16_t*)img)[h*i+j] & 0xFF00);
+      uint16_t right = 0x00FF &cdf[Y];
+      ((uint16_t*)img)[h*i+j] = (left | right);
+    }
+  }
+}
+
 void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
 {
   uint8_t   *raw; // pointer to raw frame buffer
@@ -316,6 +360,7 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
 
   // Get the details of the image from the camera driver.
 	camera_get_image(&raw, &imgLen, &w, &h);
+  hist_eq(raw,w,h);
 
   // details for converting from YUV422 to RGB565 in gray scale
   /*

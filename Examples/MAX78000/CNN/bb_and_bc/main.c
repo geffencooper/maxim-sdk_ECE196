@@ -1,40 +1,3 @@
-/*******************************************************************************
-* Copyright (C) Maxim Integrated Products, Inc., All rights Reserved.
-*
-* This software is protected by copyright laws of the United States and
-* of foreign countries. This material may also be protected by patent laws
-* and technology transfer regulations of the United States and of foreign
-* countries. This software is furnished under a license agreement and/or a
-* nondisclosure agreement and may only be used or reproduced in accordance
-* with the terms of those agreements. Dissemination of this information to
-* any party or parties not specified in the license agreement and/or
-* nondisclosure agreement is expressly prohibited.
-*
-* The above copyright notice and this permission notice shall be included
-* in all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-* OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-* IN NO EVENT SHALL MAXIM INTEGRATED BE LIABLE FOR ANY CLAIM, DAMAGES
-* OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-* OTHER DEALINGS IN THE SOFTWARE.
-*
-* Except as contained in this notice, the name of Maxim Integrated
-* Products, Inc. shall not be used except as stated in the Maxim Integrated
-* Products, Inc. Branding Policy.
-*
-* The mere transfer of this software does not imply any licenses
-* of trade secrets, proprietary technology, copyrights, patents,
-* trademarks, maskwork rights, or any other form of intellectual
-* property whatsoever. Maxim Integrated Products, Inc. retains all
-* ownership rights.
-*******************************************************************************/
-
-// bb_and_bc
-// Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix bb_and_bc --checkpoint-file trained/bb_and_bc_q.pth.tar --config-file networks/bb_and_bc.yaml --device MAX78000 --compact-data --mexpress --timer 0 --display-checkpoint
-
 // standard C libraries
 #include <stdlib.h>
 #include <stdint.h>
@@ -169,10 +132,10 @@ int main(void)
     
     int face = (*((volatile uint32_t *) 0x50404000));
     int no_face = (*((volatile uint32_t *) 0x50404004));
-    int x = (*((volatile uint32_t *) 0x50404008))/950;
-    int y = (*((volatile uint32_t *) 0x5040400C))/950;
-    int w = (*((volatile uint32_t *) 0x50404010))/1150;
-    int h = (*((volatile uint32_t *) 0x50404014))/1150;
+    int x = (*((volatile uint32_t *) 0x50404008))/1200;
+    int y = (*((volatile uint32_t *) 0x5040400C))/1100;
+    int w = (*((volatile uint32_t *) 0x50404010))/1100;
+    int h = (*((volatile uint32_t *) 0x50404014))/1100;
     printf("face: %i\n",face);
     printf("no face: %i\n",no_face);
     printf("x: %i\n",x); // 0,0,0 
@@ -283,13 +246,3 @@ int main(void)
 
   return 0;
 }
-
-/*
-  SUMMARY OF OPS
-  Hardware: 25,137,620 ops (24,835,988 macc; 301,632 comp; 0 add; 0 mul; 0 bitwise)
-
-  RESOURCE USAGE
-  Weight memory: 155,036 bytes out of 442,368 bytes total (35%)
-  Bias memory:   12 bytes out of 2,048 bytes total (1%)
-*/
-
