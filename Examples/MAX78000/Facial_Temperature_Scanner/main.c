@@ -42,13 +42,17 @@ int main(void)
   // DO NOT DELETE THIS LINE:
   MXC_Delay(SEC(2)); // Let debugger interrupt if needed
 
+  // initialize the state machine and the peripherals
+  printf("initializing state machine\n");
   int ret = init_ssm();
   if(ret < 0)
   {
     printf("Error: could not initialize facial scanner. Check error messages.\n");
     return -1;
   }
- execute_ssm();
+
+  // start the state machine
+  execute_ssm();
 }
 #ifdef MASTERDMA
         MXC_DMA_ReleaseChannel(0);

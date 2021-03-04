@@ -165,6 +165,7 @@ static const uint8_t camera_settings[][2] = {
     {0x1d, 0xa2},
 	  {0xee, 0xee}  // End of register list marker 0xee
 };
+
 int init_camera_sensor(uint16_t x_dim, uint16_t y_dim)
 {
     IMAGE_SIZE_X = x_dim;
@@ -178,19 +179,18 @@ int init_camera_sensor(uint16_t x_dim, uint16_t y_dim)
     printf("Init Camera.\n");
     camera_init(CAMERA_FREQ);
 
-
-  // set camera registers with default values
+    // set camera registers with default values
     for (int i = 0; (camera_settings[i][0] != 0xee); i++) 
     {
       camera_write_reg(camera_settings[i][0], camera_settings[i][1]);
     }
 
     int ret = camera_setup(x_dim, y_dim, PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA, dma_channel);
-	if (ret != STATUS_OK) 
+	  if (ret != STATUS_OK) 
     {
-		printf("Error returned from setting up camera. Error %d\n", ret);
-		return -1;
-	}
+		  printf("Error returned from setting up camera. Error %d\n", ret);
+		  return -1;
+	  }
   
 }
 

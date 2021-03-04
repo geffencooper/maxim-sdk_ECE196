@@ -15,6 +15,11 @@
 #include "cnn.h"
 #include "tft_fthr.h"
 
+#include "camera_funcs.h"
+#include "scanner_state_machine.h"
+#include "HiLetgo_ILI9341.h"
+#include "PIR_sensor.h"
+
 
 #define TFT_BUFF_SIZE   50    // TFT buffer size
 uint32_t cnn_buffer[1600];
@@ -22,26 +27,19 @@ volatile uint32_t cnn_time; // Stopwatch
 
 void load_input(void)
 {
-  // This function loads the sample data input -- replace with actual data
-
-  //memcpy32((uint32_t *) 0x50400000, input_0, 1600);
   memcpy32((uint32_t *) 0x50400000, cnn_buffer, 1600);
 }
 
 // Classification layer:
-static int32_t ml_data[CNN_NUM_OUTPUTS];
-static q15_t ml_softmax[CNN_NUM_OUTPUTS];
+static int32_t ml_data[2];
+static q15_t ml_softmax[2];
 
 void softmax_layer(void)
 {
-  cnn_unload((uint32_t *) ml_data);
-  softmax_q17p14_q15((const q31_t *) ml_data, CNN_NUM_OUTPUTS, ml_softmax);
+  ((uint32_t *) ml_data)[0] = (*((volatile uint32_t *) 0x50404000));
+  ((uint32_t *) ml_data)[1] = (*((volatile uint32_t *) 0x50404004));
+  softmax_q17p14_q15((const q31_t *) ml_data, 2, ml_softmax);
 }
-
-#include "camera_funcs.h"
-#include "scanner_state_machine.h"
-#include "HiLetgo_ILI9341.h"
-#include "PIR_sensor.h"
 
 // this struct defines the state machine
 typedef struct 
@@ -98,7 +96,7 @@ int init_ssm()
     init_system();
 
     // initialize the peripherals
-    int ret = init_camera_sensor(80,80);
+    int ret = init_camera_sensor(160,160);
     if(ret < 0)
     {
         return -1;
@@ -134,7 +132,7 @@ void execute_ssm()
                 area_t clear_word = {10, 100, 200, 20};
                 int last_state = 0;
                 capture_camera_img();
-                display_grayscale_img(100,150,cnn_buffer);
+                display_grayscale_img(40,100,cnn_buffer);
                 
                 // Enable CNN clock
                 MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_CNN);
@@ -178,8 +176,8 @@ void execute_ssm()
                 memset(buff,32,TFT_BUFF_SIZE);
                 if(max_i != last_state)
                 {
-                    MXC_TFT_FillRect(&clear_word, 4);
-                    TFT_Print(buff, 10, 100, 1, sprintf(buff, "DETECTED A FACE"));
+                    //MXC_TFT_FillRect(&clear_word, 4);
+                    //TFT_Print(buff, 10, 100, 1, sprintf(buff, "DETECTED A FACE"));
                 }
                 }
                 else
@@ -188,8 +186,8 @@ void execute_ssm()
                 memset(buff,32,TFT_BUFF_SIZE);
                 if(max_i != last_state)
                 {
-                    MXC_TFT_FillRect(&clear_word, 4);
-                    TFT_Print(buff, 10, 100, 1, sprintf(buff, "NO FACE DETECTED"));
+                    //MXC_TFT_FillRect(&clear_word, 4);
+                    //TFT_Print(buff, 10, 100, 1, sprintf(buff, "NO FACE DETECTED"));
                 }
                 }
                 last_state = max_i;

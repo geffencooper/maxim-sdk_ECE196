@@ -40,14 +40,16 @@
 
 void init_ILI_LCD()
 {
+  
     // MXC_SPI0->ctrl2 |= MXC_F_SPI_REVA_CTRL2_CLKPHA;
     // MXC_SPI0->ctrl2 |= MXC_F_SPI_REVA_CTRL2_CLKPOL;
 
     // ssidx is 1 because that gpio is available on the board (11 or 8)
     int res = MXC_TFT_Init(MXC_SPI0, 1,NULL,NULL);
+    printf("init LCD: %i\n", res);
     area_t a = {50,50,30,30};
     int8_t frame_buffer[10000];
-    MXC_TFT_SetRotation(2);
+    //MXC_TFT_SetRotation(2);
     MXC_TFT_ClearScreen();
 }
 
@@ -95,31 +97,63 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
   #define GREEN_PX 0xE003;
   #define BLUE_PX 0x1F00;
 
-  // iterate over all pixels
-  for(int i = 0; i < h; i++) // rows
+  // iterate over all pixels in the top left quadrant
+  for(int row = 0; row < h/2; row++)
   {
-    for(int j = 0; j < w; j++) // cols
+    for(int col = 0; col < (w+1)/2; col++)
     {
-      // extract luminance from the YUV pixel which is 16 bits
-      uint8_t Y = (((uint16_t*)raw)[h*i+j] & 0x00FF);
+      // store temp values to swap with because need to rotate image 90 degrees clockwise
+      // uint8_t px_tl = (((uint16_t*)raw)[w*row+col] & 0x00FF);
+      // uint8_t px_tr = (((uint16_t*)raw)[w*(col)+(w-1-row)] & 0x00FF);
+      // uint8_t px_br = (((uint16_t*)raw)[w*(w-1-row)+(w-1-col)] & 0x00FF);
+      // uint8_t px_bl = (((uint16_t*)raw)[w*(w-1-col)+row] & 0x00FF);
       
-      // represent luminance using RGB565
-      uint16_t R = (Y & 0x00F8);
-      uint16_t G = (Y & 0x00FC);
-      G = (((G & 0xE0) >> 5) | ((G & 0x1C) << 11));
-      uint16_t B = ((Y & 0x00F8) << 5);
-      ((uint16_t*)raw)[h*i+j] = (R | G | B); // edit the raw frame buffer to grayscale, no downsampling
-      cnn_buffer[(h)*(i)+(j)] = Y-128; // convert to signed
+      // swap the values to rotate the image 90 degrees clockwise
+      // ((uint16_t*)raw)[w*row+col] = px_tr;
+      // ((uint16_t*)raw)[w*(col)+(w-1-row)] = px_br;
+      // ((uint16_t*)raw)[w*(w-1-row)+(w-1-col)] = px_bl;
+      // ((uint16_t*)raw)[w*(w-1-col)+row] = px_tl;
 
-      // rotated version is (x, y) --> (x-xp, y-yp) --> (-(y-yp), x-xp) --> (-y+yp+xp, x-xp+yp)
-      // (h*i + j) --> (h*(j-100+150) + (-i + 150 +100))
-      cnn_buffer[(h)*(i)+(j)] = Y-128;
+      // uncomment this to display a grayscale image
+      // we need to represent luminance using RGB565
+      // uint16_t R_tl = ((px_tl & 0x00FF) & 0x00F8);
+      // uint16_t G_tl = ((px_tl & 0x00FF) & 0x00FC);
+      // G_tl = (((G_tl & 0xE0) >> 5) | ((G_tl & 0x1C) << 11));
+      // uint16_t B_tl = (((px_tl & 0x00FF) & 0x00F8) << 5);
 
+      // uint16_t R_tr = ((px_tr & 0x00FF) & 0x00F8);
+      // uint16_t G_tr = ((px_tr & 0x00FF) & 0x00FC);
+      // G_tr = (((G_tr & 0xE0) >> 5) | ((G_tr & 0x1C) << 11));
+      // uint16_t B_tr = (((px_tr & 0x00FF) & 0x00F8) << 5);
+
+      // uint16_t R_br = ((px_br & 0x00FF) & 0x00F8);
+      // uint16_t G_br = ((px_br & 0x00FF) & 0x00FC);
+      // G_br = (((G_br & 0xE0) >> 5) | ((G_br & 0x1C) << 11));
+      // uint16_t B_br = (((px_br & 0x00FF) & 0x00F8) << 5);
+
+      // uint16_t R_bl = ((px_bl & 0x00FF) & 0x00F8);
+      // uint16_t G_bl = ((px_bl & 0x00FF) & 0x00FC);
+      // G_bl = (((G_bl & 0xE0) >> 5) | ((G_bl & 0x1C) << 11));
+      // uint16_t B_bl = (((px_bl & 0x00FF) & 0x00F8) << 5);
+
+      // ((uint16_t*)raw)[w*row+col] = (R_tl | G_tl | B_tl);
+      // ((uint16_t*)raw)[w*(col)+(w-1-row)] = (R_tr | G_tr | B_tr);
+      // ((uint16_t*)raw)[w*(w-1-row)+(w-1-col)] = (R_br | G_br | B_br);
+      // ((uint16_t*)raw)[w*(w-1-col)+row] = (R_bl | G_bl | B_bl);
+
+      // write the signed grayscale values to the CNN buffer
+      // cnn_buffer[w*row+col] = (px_tr & 0x00FF)-128;
+      // cnn_buffer[w*(col)+(w-1-row)] = (px_br & 0x00FF)-128;
+      // cnn_buffer[w*(w-1-row)+(w-1-col)] = (px_tl & 0x00FF)-128;
+      // cnn_buffer[w*(w-1-col)+row] = (px_bl & 0x00FF)-128;
+      
+      // cnn_buffer[w*row+col] = (px_tr & 0x00FF)-128;
+      // cnn_buffer[w*(col)+(w-1-row)] = (px_br & 0x00FF)-128;
+      // cnn_buffer[w*(w-1-row)+(w-1-col)] = (px_tl & 0x00FF)-128;
+      // cnn_buffer[w*(w-1-col)+row] = (px_bl & 0x00FF)-128;
     }
   }
-  // display the image
-  //MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
-  
+  // display the image  
   MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
 }
 

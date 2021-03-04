@@ -6,7 +6,7 @@
 **************************************************************************************************/
 
 /*
- * This header file was automatically generated for the mini_vgg_face_classifier network from a template.
+ * This header file was automatically generated for the bb_and_bc network from a template.
  * Please do not edit; instead, edit the template and regenerate.
  */
 
@@ -23,15 +23,15 @@ typedef int16_t q15_t;
 
 /*
   SUMMARY OF OPS
-  Hardware: 25,135,316 ops (24,833,684 macc; 301,632 comp; 0 add; 0 mul; 0 bitwise)
+  Hardware: 25,137,620 ops (24,835,988 macc; 301,632 comp; 0 add; 0 mul; 0 bitwise)
 
   RESOURCE USAGE
-  Weight memory: 152,732 bytes out of 442,368 bytes total (35%)
+  Weight memory: 155,036 bytes out of 442,368 bytes total (35%)
   Bias memory:   12 bytes out of 2,048 bytes total (1%)
 */
 
 /* Number of outputs for this network */
-#define CNN_NUM_OUTPUTS 2
+#define CNN_NUM_OUTPUTS 4
 
 /* Use this timer to time the inference */
 #define CNN_INFERENCE_TIMER MXC_TMR0

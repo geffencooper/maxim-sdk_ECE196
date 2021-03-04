@@ -32,12 +32,12 @@
 * ownership rights.
 *******************************************************************************/
 
-// mini_vgg_face_classifier
-// Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix mini_vgg_face_classifier --checkpoint-file trained/mini_vgg_net_q.pth.tar --config-file networks/mini_vgg_net.yaml --device MAX78000 --softmax --compact-data --mexpress --timer 0 --display-checkpoint
+// bb_and_bc
+// Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix bb_and_bc --checkpoint-file trained/bb_and_bc_q.pth.tar --config-file networks/bb_and_bc.yaml --device MAX78000 --compact-data --mexpress --timer 0 --display-checkpoint
 
 // DO NOT EDIT - regenerate this file instead!
 
-// Configuring 12 layers:
+// Configuring 13 layers:
 // Layer 0: 1x80x80 (CHW data), no pooling, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 8x80x80 output
 // Layer 1: 8x80x80 (HWC data), no pooling, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 8x80x80 output
 // Layer 2: 8x80x80 (HWC data), 2x2 max pool with stride 2/2, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 16x40x40 output
@@ -50,6 +50,7 @@
 // Layer 9: 64x6x6 (HWC data), 2x2 max pool with stride 2/2, conv2d with kernel size 3x3, stride 1/1, pad 1/1, 64x3x3 output
 // Layer 10: 64x3x3 (flattened HWC data), no pooling, conv2d with kernel size 1x1, stride 1/1, pad 0/0, 10x1x1 output
 // Layer 11: 10x1x1 (flattened HWC data), no pooling, conv2d with kernel size 1x1, stride 1/1, pad 0/0, 2x1x1 output
+// Layer 12: 64x3x3 (flattened HWC data), no pooling, conv2d with kernel size 1x1, stride 1/1, pad 0/0, 4x1x1 output
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -168,133 +169,133 @@ static const uint32_t kernels_63[] = KERNELS_63;
 int cnn_load_weights(void)
 {
   *((volatile uint8_t *) 0x50180001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50180000, kernels_0, 779);
+  memcpy32((uint32_t *) 0x50180000, kernels_0, 801);
   *((volatile uint8_t *) 0x50184041) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50184000, kernels_1, 743);
+  memcpy32((uint32_t *) 0x50184000, kernels_1, 765);
   *((volatile uint8_t *) 0x50188041) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50188000, kernels_2, 743);
+  memcpy32((uint32_t *) 0x50188000, kernels_2, 765);
   *((volatile uint8_t *) 0x5018c041) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x5018c000, kernels_3, 743);
+  memcpy32((uint32_t *) 0x5018c000, kernels_3, 765);
   *((volatile uint8_t *) 0x50190001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50190000, kernels_4, 779);
+  memcpy32((uint32_t *) 0x50190000, kernels_4, 801);
   *((volatile uint8_t *) 0x50194001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50194000, kernels_5, 779);
+  memcpy32((uint32_t *) 0x50194000, kernels_5, 801);
   *((volatile uint8_t *) 0x50198001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50198000, kernels_6, 779);
+  memcpy32((uint32_t *) 0x50198000, kernels_6, 801);
   *((volatile uint8_t *) 0x5019c001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x5019c000, kernels_7, 779);
+  memcpy32((uint32_t *) 0x5019c000, kernels_7, 801);
   *((volatile uint8_t *) 0x501a0001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x501a0000, kernels_8, 779);
+  memcpy32((uint32_t *) 0x501a0000, kernels_8, 801);
   *((volatile uint8_t *) 0x501a4001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x501a4000, kernels_9, 779);
+  memcpy32((uint32_t *) 0x501a4000, kernels_9, 801);
   *((volatile uint8_t *) 0x501a8001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x501a8000, kernels_10, 779);
+  memcpy32((uint32_t *) 0x501a8000, kernels_10, 801);
   *((volatile uint8_t *) 0x501ac001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x501ac000, kernels_11, 779);
+  memcpy32((uint32_t *) 0x501ac000, kernels_11, 801);
   *((volatile uint8_t *) 0x501b0001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x501b0000, kernels_12, 779);
+  memcpy32((uint32_t *) 0x501b0000, kernels_12, 801);
   *((volatile uint8_t *) 0x501b4001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x501b4000, kernels_13, 779);
+  memcpy32((uint32_t *) 0x501b4000, kernels_13, 801);
   *((volatile uint8_t *) 0x501b8001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x501b8000, kernels_14, 779);
+  memcpy32((uint32_t *) 0x501b8000, kernels_14, 801);
   *((volatile uint8_t *) 0x501bc001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x501bc000, kernels_15, 779);
+  memcpy32((uint32_t *) 0x501bc000, kernels_15, 801);
   *((volatile uint8_t *) 0x50580001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50580000, kernels_16, 779);
+  memcpy32((uint32_t *) 0x50580000, kernels_16, 801);
   *((volatile uint8_t *) 0x50584001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50584000, kernels_17, 779);
+  memcpy32((uint32_t *) 0x50584000, kernels_17, 801);
   *((volatile uint8_t *) 0x50588001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50588000, kernels_18, 779);
+  memcpy32((uint32_t *) 0x50588000, kernels_18, 801);
   *((volatile uint8_t *) 0x5058c001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x5058c000, kernels_19, 779);
+  memcpy32((uint32_t *) 0x5058c000, kernels_19, 801);
   *((volatile uint8_t *) 0x505900c1) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50590000, kernels_20, 671);
+  memcpy32((uint32_t *) 0x50590000, kernels_20, 693);
   *((volatile uint8_t *) 0x505940c1) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50594000, kernels_21, 671);
+  memcpy32((uint32_t *) 0x50594000, kernels_21, 693);
   *((volatile uint8_t *) 0x505980c1) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50598000, kernels_22, 671);
+  memcpy32((uint32_t *) 0x50598000, kernels_22, 693);
   *((volatile uint8_t *) 0x5059c0c1) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x5059c000, kernels_23, 671);
+  memcpy32((uint32_t *) 0x5059c000, kernels_23, 693);
   *((volatile uint8_t *) 0x505a0001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x505a0000, kernels_24, 779);
+  memcpy32((uint32_t *) 0x505a0000, kernels_24, 801);
   *((volatile uint8_t *) 0x505a4001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x505a4000, kernels_25, 779);
+  memcpy32((uint32_t *) 0x505a4000, kernels_25, 801);
   *((volatile uint8_t *) 0x505a8001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x505a8000, kernels_26, 779);
+  memcpy32((uint32_t *) 0x505a8000, kernels_26, 801);
   *((volatile uint8_t *) 0x505ac001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x505ac000, kernels_27, 779);
+  memcpy32((uint32_t *) 0x505ac000, kernels_27, 801);
   *((volatile uint8_t *) 0x505b0001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x505b0000, kernels_28, 779);
+  memcpy32((uint32_t *) 0x505b0000, kernels_28, 801);
   *((volatile uint8_t *) 0x505b4001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x505b4000, kernels_29, 779);
+  memcpy32((uint32_t *) 0x505b4000, kernels_29, 801);
   *((volatile uint8_t *) 0x505b8001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x505b8000, kernels_30, 779);
+  memcpy32((uint32_t *) 0x505b8000, kernels_30, 801);
   *((volatile uint8_t *) 0x505bc001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x505bc000, kernels_31, 779);
+  memcpy32((uint32_t *) 0x505bc000, kernels_31, 801);
   *((volatile uint8_t *) 0x50980001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50980000, kernels_32, 779);
+  memcpy32((uint32_t *) 0x50980000, kernels_32, 801);
   *((volatile uint8_t *) 0x50984001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50984000, kernels_33, 779);
+  memcpy32((uint32_t *) 0x50984000, kernels_33, 801);
   *((volatile uint8_t *) 0x50988001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50988000, kernels_34, 779);
+  memcpy32((uint32_t *) 0x50988000, kernels_34, 801);
   *((volatile uint8_t *) 0x5098c001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x5098c000, kernels_35, 779);
+  memcpy32((uint32_t *) 0x5098c000, kernels_35, 801);
   *((volatile uint8_t *) 0x50990001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50990000, kernels_36, 779);
+  memcpy32((uint32_t *) 0x50990000, kernels_36, 801);
   *((volatile uint8_t *) 0x50994001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50994000, kernels_37, 779);
+  memcpy32((uint32_t *) 0x50994000, kernels_37, 801);
   *((volatile uint8_t *) 0x50998001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50998000, kernels_38, 779);
+  memcpy32((uint32_t *) 0x50998000, kernels_38, 801);
   *((volatile uint8_t *) 0x5099c001) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x5099c000, kernels_39, 779);
+  memcpy32((uint32_t *) 0x5099c000, kernels_39, 801);
   *((volatile uint8_t *) 0x509a0241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x509a0000, kernels_40, 455);
+  memcpy32((uint32_t *) 0x509a0000, kernels_40, 477);
   *((volatile uint8_t *) 0x509a4241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x509a4000, kernels_41, 455);
+  memcpy32((uint32_t *) 0x509a4000, kernels_41, 477);
   *((volatile uint8_t *) 0x509a8241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x509a8000, kernels_42, 455);
+  memcpy32((uint32_t *) 0x509a8000, kernels_42, 477);
   *((volatile uint8_t *) 0x509ac241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x509ac000, kernels_43, 455);
+  memcpy32((uint32_t *) 0x509ac000, kernels_43, 477);
   *((volatile uint8_t *) 0x509b0241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x509b0000, kernels_44, 455);
+  memcpy32((uint32_t *) 0x509b0000, kernels_44, 477);
   *((volatile uint8_t *) 0x509b4241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x509b4000, kernels_45, 455);
+  memcpy32((uint32_t *) 0x509b4000, kernels_45, 477);
   *((volatile uint8_t *) 0x509b8241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x509b8000, kernels_46, 455);
+  memcpy32((uint32_t *) 0x509b8000, kernels_46, 477);
   *((volatile uint8_t *) 0x509bc241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x509bc000, kernels_47, 455);
+  memcpy32((uint32_t *) 0x509bc000, kernels_47, 477);
   *((volatile uint8_t *) 0x50d80241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50d80000, kernels_48, 455);
+  memcpy32((uint32_t *) 0x50d80000, kernels_48, 477);
   *((volatile uint8_t *) 0x50d84241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50d84000, kernels_49, 455);
+  memcpy32((uint32_t *) 0x50d84000, kernels_49, 477);
   *((volatile uint8_t *) 0x50d88241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50d88000, kernels_50, 455);
+  memcpy32((uint32_t *) 0x50d88000, kernels_50, 477);
   *((volatile uint8_t *) 0x50d8c241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50d8c000, kernels_51, 455);
+  memcpy32((uint32_t *) 0x50d8c000, kernels_51, 477);
   *((volatile uint8_t *) 0x50d90241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50d90000, kernels_52, 462);
+  memcpy32((uint32_t *) 0x50d90000, kernels_52, 477);
   *((volatile uint8_t *) 0x50d94241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50d94000, kernels_53, 462);
+  memcpy32((uint32_t *) 0x50d94000, kernels_53, 477);
   *((volatile uint8_t *) 0x50d98241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50d98000, kernels_54, 462);
+  memcpy32((uint32_t *) 0x50d98000, kernels_54, 477);
   *((volatile uint8_t *) 0x50d9c241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50d9c000, kernels_55, 462);
+  memcpy32((uint32_t *) 0x50d9c000, kernels_55, 477);
   *((volatile uint8_t *) 0x50da0241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50da0000, kernels_56, 462);
+  memcpy32((uint32_t *) 0x50da0000, kernels_56, 477);
   *((volatile uint8_t *) 0x50da4241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50da4000, kernels_57, 462);
+  memcpy32((uint32_t *) 0x50da4000, kernels_57, 477);
   *((volatile uint8_t *) 0x50da8241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50da8000, kernels_58, 462);
+  memcpy32((uint32_t *) 0x50da8000, kernels_58, 477);
   *((volatile uint8_t *) 0x50dac241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50dac000, kernels_59, 462);
+  memcpy32((uint32_t *) 0x50dac000, kernels_59, 477);
   *((volatile uint8_t *) 0x50db0241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50db0000, kernels_60, 462);
+  memcpy32((uint32_t *) 0x50db0000, kernels_60, 477);
   *((volatile uint8_t *) 0x50db4241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50db4000, kernels_61, 462);
+  memcpy32((uint32_t *) 0x50db4000, kernels_61, 477);
   *((volatile uint8_t *) 0x50db8241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50db8000, kernels_62, 455);
+  memcpy32((uint32_t *) 0x50db8000, kernels_62, 477);
   *((volatile uint8_t *) 0x50dbc241) = 0x01; // Set address
-  memcpy32((uint32_t *) 0x50dbc000, kernels_63, 455);
+  memcpy32((uint32_t *) 0x50dbc000, kernels_63, 477);
 
   return CNN_OK;
 }
@@ -320,16 +321,16 @@ int cnn_init(void)
   *((volatile uint32_t *) 0x50001000) = 0x00000000; // AON control
   *((volatile uint32_t *) 0x50100000) = 0x00100008; // Stop SM
   *((volatile uint32_t *) 0x50100004) = 0x0000040e; // SRAM control
-  *((volatile uint32_t *) 0x50100008) = 0x0000000b; // Layer count
+  *((volatile uint32_t *) 0x50100008) = 0x0000000c; // Layer count
   *((volatile uint32_t *) 0x50500000) = 0x00100008; // Stop SM
   *((volatile uint32_t *) 0x50500004) = 0x0000040e; // SRAM control
-  *((volatile uint32_t *) 0x50500008) = 0x0000000b; // Layer count
+  *((volatile uint32_t *) 0x50500008) = 0x0000000c; // Layer count
   *((volatile uint32_t *) 0x50900000) = 0x00100008; // Stop SM
   *((volatile uint32_t *) 0x50900004) = 0x0000040e; // SRAM control
-  *((volatile uint32_t *) 0x50900008) = 0x0000000b; // Layer count
+  *((volatile uint32_t *) 0x50900008) = 0x0000000c; // Layer count
   *((volatile uint32_t *) 0x50d00000) = 0x00100008; // Stop SM
   *((volatile uint32_t *) 0x50d00004) = 0x0000040e; // SRAM control
-  *((volatile uint32_t *) 0x50d00008) = 0x0000000b; // Layer count
+  *((volatile uint32_t *) 0x50d00008) = 0x0000000c; // Layer count
 
   return CNN_OK;
 }
@@ -896,6 +897,7 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50d00738) = 0xffffffff; // Mask and processor enables
 
   // Layer 11 group 0
+  *((volatile uint32_t *) 0x5010033c) = 0x00001000; // SRAM write ptr
   *((volatile uint32_t *) 0x501003bc) = 0x00000001; // Write ptr time slot offs
   *((volatile uint32_t *) 0x5010043c) = 0x00002000; // Write ptr mask offs
   *((volatile uint32_t *) 0x5010053c) = 0x00000800; // SRAM read ptr
@@ -906,6 +908,7 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x501007bc) = 0x0000100a; // Post processing register
 
   // Layer 11 group 1
+  *((volatile uint32_t *) 0x5050033c) = 0x00001000; // SRAM write ptr
   *((volatile uint32_t *) 0x505003bc) = 0x00000001; // Write ptr time slot offs
   *((volatile uint32_t *) 0x5050043c) = 0x00002000; // Write ptr mask offs
   *((volatile uint32_t *) 0x5050053c) = 0x00000800; // SRAM read ptr
@@ -915,6 +918,7 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x5050013c) = 0x00000100; // 1D
 
   // Layer 11 group 2
+  *((volatile uint32_t *) 0x5090033c) = 0x00001000; // SRAM write ptr
   *((volatile uint32_t *) 0x509003bc) = 0x00000001; // Write ptr time slot offs
   *((volatile uint32_t *) 0x5090043c) = 0x00002000; // Write ptr mask offs
   *((volatile uint32_t *) 0x5090053c) = 0x00000800; // SRAM read ptr
@@ -924,6 +928,7 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x5090013c) = 0x00000100; // 1D
 
   // Layer 11 group 3
+  *((volatile uint32_t *) 0x50d0033c) = 0x00001000; // SRAM write ptr
   *((volatile uint32_t *) 0x50d003bc) = 0x00000001; // Write ptr time slot offs
   *((volatile uint32_t *) 0x50d0043c) = 0x00002000; // Write ptr mask offs
   *((volatile uint32_t *) 0x50d0053c) = 0x00000800; // SRAM read ptr
@@ -932,6 +937,50 @@ int cnn_configure(void)
   *((volatile uint32_t *) 0x50d0063c) = 0x61e061e8; // Mask offset and count
   *((volatile uint32_t *) 0x50d0013c) = 0x00000100; // 1D
   *((volatile uint32_t *) 0x50d0073c) = 0x3ff03ff0; // Mask and processor enables
+
+  // Layer 12 group 0
+  *((volatile uint32_t *) 0x50100340) = 0x00001002; // SRAM write ptr
+  *((volatile uint32_t *) 0x501003c0) = 0x00000001; // Write ptr time slot offs
+  *((volatile uint32_t *) 0x50100440) = 0x00002000; // Write ptr mask offs
+  *((volatile uint32_t *) 0x501005c0) = 0x0001e920; // Layer control
+  *((volatile uint32_t *) 0x50100a40) = 0x00001808; // Layer control 2
+  *((volatile uint32_t *) 0x50100640) = 0x63006418; // Mask offset and count
+  *((volatile uint32_t *) 0x50100140) = 0x00000100; // 1D
+  *((volatile uint32_t *) 0x501007c0) = 0x0000a000; // Post processing register
+  *((volatile uint32_t *) 0x50100740) = 0xffffffff; // Mask and processor enables
+
+  // Layer 12 group 1
+  *((volatile uint32_t *) 0x50500340) = 0x00001002; // SRAM write ptr
+  *((volatile uint32_t *) 0x505003c0) = 0x00000001; // Write ptr time slot offs
+  *((volatile uint32_t *) 0x50500440) = 0x00002000; // Write ptr mask offs
+  *((volatile uint32_t *) 0x505005c0) = 0x00010920; // Layer control
+  *((volatile uint32_t *) 0x50500a40) = 0x00001808; // Layer control 2
+  *((volatile uint32_t *) 0x50500640) = 0x63006418; // Mask offset and count
+  *((volatile uint32_t *) 0x50500140) = 0x00000100; // 1D
+  *((volatile uint32_t *) 0x505007c0) = 0x0000a000; // Post processing register
+  *((volatile uint32_t *) 0x50500740) = 0xffffffff; // Mask and processor enables
+
+  // Layer 12 group 2
+  *((volatile uint32_t *) 0x50900340) = 0x00001002; // SRAM write ptr
+  *((volatile uint32_t *) 0x509003c0) = 0x00000001; // Write ptr time slot offs
+  *((volatile uint32_t *) 0x50900440) = 0x00002000; // Write ptr mask offs
+  *((volatile uint32_t *) 0x509005c0) = 0x00010920; // Layer control
+  *((volatile uint32_t *) 0x50900a40) = 0x00001808; // Layer control 2
+  *((volatile uint32_t *) 0x50900640) = 0x63006418; // Mask offset and count
+  *((volatile uint32_t *) 0x50900140) = 0x00000100; // 1D
+  *((volatile uint32_t *) 0x509007c0) = 0x0000a000; // Post processing register
+  *((volatile uint32_t *) 0x50900740) = 0xffffffff; // Mask and processor enables
+
+  // Layer 12 group 3
+  *((volatile uint32_t *) 0x50d00340) = 0x00001002; // SRAM write ptr
+  *((volatile uint32_t *) 0x50d003c0) = 0x00000001; // Write ptr time slot offs
+  *((volatile uint32_t *) 0x50d00440) = 0x00002000; // Write ptr mask offs
+  *((volatile uint32_t *) 0x50d005c0) = 0x00010920; // Layer control
+  *((volatile uint32_t *) 0x50d00a40) = 0x00001808; // Layer control 2
+  *((volatile uint32_t *) 0x50d00640) = 0x63006418; // Mask offset and count
+  *((volatile uint32_t *) 0x50d00140) = 0x00000100; // 1D
+  *((volatile uint32_t *) 0x50d007c0) = 0x0000a000; // Post processing register
+  *((volatile uint32_t *) 0x50d00740) = 0xffffffff; // Mask and processor enables
 
 
   return CNN_OK;
@@ -956,11 +1005,13 @@ int cnn_start(void)
   return CNN_OK;
 }
 
-// Custom unload for this network: 32-bit data, shape: [2, 1, 1]
+// Custom unload for this network: 32-bit data, shape: [4, 1, 1]
 int cnn_unload(uint32_t *out_buf)
 {
   volatile uint32_t *addr;
-  addr = (volatile uint32_t *) 0x50400000;
+  addr = (volatile uint32_t *) 0x50404008;
+  *out_buf++ = *addr++;
+  *out_buf++ = *addr++;
   *out_buf++ = *addr++;
   *out_buf++ = *addr++;
 

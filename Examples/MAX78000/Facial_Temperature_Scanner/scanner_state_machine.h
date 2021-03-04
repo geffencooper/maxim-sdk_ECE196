@@ -3,6 +3,7 @@
 
 #ifndef SCANNER_STATE_MACHINE
 #define SCANNER_STATE_MACHINE
+
 #include "stdint.h"
 
 // this enum defines the states in the state machine
