@@ -32,6 +32,8 @@
 ******************************************************************************/
 
 // This file defines the functions needed to interact with the LCD 
+// Much of this code is based off of the following adafruit library:https://github.com/adafruit/Adafruit_ILI9341
+// as well as the Maxim Integrated Library for a similar TFT display 
 
 #ifndef HILETGO_ILI9341_H
 #define HILETGO_ILI9341_H
@@ -74,18 +76,21 @@ void display_RGB565_img(int x_coord, int y_coord);
 void TFT_Print(char *str, int x, int y, int font, int length);
 
 /*
-    Description: This function is similar to display_RGB565_img
-                 except it first extracts the luminance value from
-                 the camera data and displays it as grayscale by 
-                 each channel equal weight. Refer to the defenition
-                for more details.
+    Description: This function is used to extract the image data from the camera
+                 and transform it into a format that the CNN expects as input.
+                 This includes extracting the luminance value from the YUV422 pixels,
+                 decimating the image from 160x160 to 80x80, rotating the image 90 degrees
+                 as the camera is not aligned on the board, and converting to int8_t. The
+                 original image buffer is not changed and the transformed version gets loaded
+                 into the cnn_buffer.
 
     Parameters: The location to display the image on the LCD (top left corner)
-                and a buffer that gets sent to the CNN
+                and a buffer that gets sent to the CNN as input
 
     Return: none
 */
-void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer);
+void load_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer);
+
 // void ILI_init();
 // void ILI_send_command(uint8_t command);
 // void ILI_send_data(uint8_t* address, uint8_t num_bytes);

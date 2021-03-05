@@ -132,7 +132,7 @@ void hist_eq(uint8_t* img, int w, int h)
   }
 }
 
-void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
+void load_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
 {
   uint8_t   *raw; // pointer to raw frame buffer
 	uint32_t  imgLen; // number of bytes, not pixels

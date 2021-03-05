@@ -40,7 +40,7 @@
 
 #define CAMERA_FREQ   (10 * 1000 * 1000)
 
-// variables
+// Global variables
 static int IMAGE_SIZE_X;
 static int IMAGE_SIZE_Y;
 static const uint8_t camera_settings[][2] = {
@@ -166,6 +166,7 @@ static const uint8_t camera_settings[][2] = {
 	  {0xee, 0xee}  // End of register list marker 0xee
 };
 
+
 int init_camera_sensor(uint16_t x_dim, uint16_t y_dim)
 {
     IMAGE_SIZE_X = x_dim;
@@ -191,7 +192,6 @@ int init_camera_sensor(uint16_t x_dim, uint16_t y_dim)
 		  printf("Error returned from setting up camera. Error %d\n", ret);
 		  return -1;
 	  }
-  
 }
 
 int get_image_x()

@@ -3,8 +3,18 @@
 #include <stdlib.h>
 #include "ssm_action.h"
 #include <stdio.h>
+
+// Global variables
 mxc_gpio_cfg_t motion_gpio;
 
+// This is the callback function (interrupt handler)
+// that gets called when the motion sensor is triggered.
+// This interrupt will be disabled when the state machine
+// leaves the IDLE state and will only be reenabled when 
+// it returns to an IDLE state. As mentioned in the header file,
+// this callback function receives a function pointer which is a
+// "state machine action". This action triggers a transition in
+// the state machine.
 void motion_isr(void* ssm_action)
 {
     // cast the callback data to the state machine action
@@ -12,6 +22,7 @@ void motion_isr(void* ssm_action)
     action();
 }
 
+// GPIO port 2 pin 7 is available on the board
 void init_PIR_sensor(void* ssm_action)
 {
     motion_gpio.port = MXC_GPIO2;

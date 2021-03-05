@@ -33,7 +33,7 @@
 
 
 // This file defines helper functions for interacting with the camera
-// Most of these come from the Maxim Integrated Drivers
+// Most of these come from the Maxim Integrated sample code
 
 #ifndef CAMERA_FUNCS_H
 #define CAMERA_FUNCS_H
@@ -42,7 +42,7 @@
 
 /*
     Description: This function initializes the camera sensor.
-                 The max is (X, Y) = (320, 240). Beyond, (200, 150)
+                 The max dimensions (X, Y) = (320, 240). Beyond, (160, 160)
                  there is noticeable update latency for the LCD.
 
     Parameters: The desired X and Y dimensions

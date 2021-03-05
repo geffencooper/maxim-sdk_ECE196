@@ -10,37 +10,41 @@
 #include "tft_fthr.h"
 #include "bitmap.h"
 
-#define SCREEN_W 160
-#define SCREEN_H 160
-#define SCREEN_X 40
-#define SCREEN_Y 100
-#define BB_COLOR YELLOW
-#define BB_W 2
-#define TFT_BUFF_SIZE   50    // TFT buffer size
+// macros
+#define SCREEN_W 160 // image output width
+#define SCREEN_H 160 // image output height
+#define SCREEN_X 40 // image output top left corner
+#define SCREEN_Y 100 // image output top left corner
+#define BB_COLOR YELLOW // the bounding box color
+#define BB_W 2 // the bounding box width in pixels
+#define TFT_BUFF_SIZE   50 // TFT text buffer size
+#define NUM_CLASSES 2 // number of output classes
 
-uint32_t cnn_buffer[1600];
+// Global variables
+uint32_t cnn_buffer[1600]; // the input image data into the CNN
+char buff[TFT_BUFF_SIZE]; // buffer for touch screen text
 volatile uint32_t cnn_time; // Stopwatch
-cnn_output_t output;
-area_t clear_word = {0, 0, 200, 20};
-// buffer for touch screen text
-char buff[TFT_BUFF_SIZE];
+cnn_output_t output; // the output data of the CNN
+area_t clear_word = {0, 0, 200, 20}; // a rectangle used to clear text
+static int32_t ml_data[NUM_CLASSES]; // classification output data
+static q15_t ml_softmax[NUM_CLASSES]; // softmax output data
 
+// this function loads the image data into the input layer's data memory instance
 void load_input(void)
 {
   memcpy32((uint32_t *) 0x50400000, cnn_buffer, 1600);
 }
 
-// Classification layer:
-static int32_t ml_data[2];
-static q15_t ml_softmax[2];
-
+// this function gets the classification data (face or no face) from the output layer
+// and passes it to the auto-generated softmax function
 void softmax_layer(void)
 {
   ((uint32_t *) ml_data)[0] = (*((volatile uint32_t *) 0x50404000));
   ((uint32_t *) ml_data)[1] = (*((volatile uint32_t *) 0x50404004));
-  softmax_q17p14_q15((const q31_t *) ml_data, 2, ml_softmax);
+  softmax_q17p14_q15((const q31_t *) ml_data, NUM_CLASSES, ml_softmax);
 }
 
+// simple getter function
 uint32_t* get_cnn_buffer()
 {
     return cnn_buffer;
@@ -55,7 +59,7 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
     int max_i = 0;
 
     capture_camera_img();
-    display_grayscale_img(40,100,get_cnn_buffer());
+    load_grayscale_img(40,100,get_cnn_buffer());
     
     // Enable CNN clock
     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_CNN);

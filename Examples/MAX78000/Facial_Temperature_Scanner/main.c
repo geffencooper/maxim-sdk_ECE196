@@ -31,6 +31,9 @@
 *
 ******************************************************************************/
 
+// main() is left fairly empty and only initializes the state machine and starts it.
+// The main loop is in scanner_state_machine.c
+
 #include "scanner_state_machine.h"
 #include "mxc.h"
 #include "mxc_device.h"
