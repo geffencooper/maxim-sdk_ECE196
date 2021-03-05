@@ -65,6 +65,8 @@ void display_RGB565_img(int x_coord, int y_coord)
 	MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
 }
 
+// this function takes the raw frame buffer and decimates it by half
+// it also co
 void decimate_half(int8_t* cnn_buffer, uint8_t* raw, int w, int h)
 {
   int w_dec = w >> 1;
@@ -82,6 +84,50 @@ void decimate_half(int8_t* cnn_buffer, uint8_t* raw, int w, int h)
 
         // set decimated pixels to every other row and column pixel in original image
         ((int8_t*)cnn_buffer)[w_dec*row_dec+col_dec] = ((uint16_t*)raw)[w*row+col] & 0x00FF;
+    }
+  }
+}
+
+void hist_eq(uint8_t* img, int w, int h)
+{
+  uint8_t hist[256] = {0};
+  uint8_t cdf[256] = {0};
+
+  // generate the histogram
+  for(int i = 0; i < h; i++) // rows
+  {
+    for(int j = 0; j < w; j++) // cols
+    {
+      uint8_t Y = (((uint16_t*)img)[h*i+j] & 0x00FF);
+      hist[Y] +=1;
+    }
+  }
+
+  uint16_t total_px = w*h;
+  int curr = 0;
+  // generate the CDF from the histogram
+  for(int i = 0; i < 256; i++) // rows
+  { 
+    curr += hist[i];
+    cdf[i] = (curr*255)/total_px;
+    // if(i == 0)
+    // {
+    //   cdf[i] = hist[0];
+    // }
+    // else
+    // {
+    //   cdf[i] = ((cdf[i-1]+hist[i])*255)/total_px;
+    // }
+  }
+
+  for(int i = 0; i < h; i++) // rows
+  {
+    for(int j = 0; j < w; j++) // cols
+    {
+      uint8_t Y = (((uint16_t*)img)[h*i+j] & 0x00FF);
+      uint16_t left = (((uint16_t*)img)[h*i+j] & 0xFF00);
+      uint16_t right = 0x00FF &cdf[Y];
+      ((uint16_t*)img)[h*i+j] = (left | right);
     }
   }
 }
@@ -117,6 +163,8 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
   #define RED_PX 0x00F8;
   #define GREEN_PX 0xE003;
   #define BLUE_PX 0x1F00;
+
+  //hist_eq(raw, w, h);  
 
   // decimate the image
   decimate_half(cnn_buffer, raw, w, h);
