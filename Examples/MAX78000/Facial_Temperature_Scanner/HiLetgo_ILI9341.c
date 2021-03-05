@@ -121,69 +121,69 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
   // decimate the image
   decimate_half(raw, w, h);
   
-  // int w_dec = w >> 1;
-  // int h_dec = h >> 1;
+  int w_dec = w >> 1;
+  int h_dec = h >> 1;
 
-  // for(int row_dec = 0; row_dec < h_dec/2; row_dec++)
-  // {
-  //   for(int col_dec = 0; col_dec < (w_dec+1)/2; col_dec++)
-  //   {
-  //       int row = row_dec << 1;
-  //       int col = col_dec << 1;
+  for(int row_dec = 0; row_dec < h_dec/2; row_dec++)
+  {
+    for(int col_dec = 0; col_dec < (w_dec+1)/2; col_dec++)
+    {
+        int row = row_dec << 1;
+        int col = col_dec << 1;
         
-  //       // store temp values to swap with because need to rotate image 90 degrees
-  //       uint16_t px_tl = ((uint16_t*)raw)[w_dec*row_dec+col_dec];
-  //       uint16_t px_tr = ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)];
-  //       uint16_t px_br = ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)];
-  //       uint16_t px_bl = ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec];
+        // store temp values to swap with because need to rotate image 90 degrees
+        uint16_t px_tl = ((uint16_t*)raw)[w_dec*row_dec+col_dec];
+        uint16_t px_tr = ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)];
+        uint16_t px_br = ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)];
+        uint16_t px_bl = ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec];
 
-  //       // swap the values to rotate the image 90 degrees
-  //       // ((uint16_t*)raw)[w_dec*row_dec+col_dec] = px_tr;
-  //       // ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)] = px_br;
-  //       // ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = px_bl;
-  //       // ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec] = px_tl;
+        // swap the values to rotate the image 90 degrees
+        // ((uint16_t*)raw)[w_dec*row_dec+col_dec] = px_tr;
+        // ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)] = px_br;
+        // ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = px_bl;
+        // ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec] = px_tl;
 
-  //       // uncomment this to display a grayscale image
-  //       // we need to represent luminance using RGB565
-  //       //#define VISUALIZE_GRAY
-  //       #ifdef VISUALIZE_GRAY
-  //       uint16_t R_tl = ((px_tl & 0x00FF) & 0x00F8);
-  //       uint16_t G_tl = ((px_tl & 0x00FF) & 0x00FC);
-  //       G_tl = (((G_tl & 0xE0) >> 5) | ((G_tl & 0x1C) << 11));
-  //       uint16_t B_tl = (((px_tl & 0x00FF) & 0x00F8) << 5);
+        // uncomment this to display a grayscale image
+        // we need to represent luminance using RGB565
+        //#define VISUALIZE_GRAY
+        #ifdef VISUALIZE_GRAY
+        uint16_t R_tl = ((px_tl & 0x00FF) & 0x00F8);
+        uint16_t G_tl = ((px_tl & 0x00FF) & 0x00FC);
+        G_tl = (((G_tl & 0xE0) >> 5) | ((G_tl & 0x1C) << 11));
+        uint16_t B_tl = (((px_tl & 0x00FF) & 0x00F8) << 5);
 
-  //       uint16_t R_tr = ((px_tr & 0x00FF) & 0x00F8);
-  //       uint16_t G_tr = ((px_tr & 0x00FF) & 0x00FC);
-  //       G_tr = (((G_tr & 0xE0) >> 5) | ((G_tr & 0x1C) << 11));
-  //       uint16_t B_tr = (((px_tr & 0x00FF) & 0x00F8) << 5);
+        uint16_t R_tr = ((px_tr & 0x00FF) & 0x00F8);
+        uint16_t G_tr = ((px_tr & 0x00FF) & 0x00FC);
+        G_tr = (((G_tr & 0xE0) >> 5) | ((G_tr & 0x1C) << 11));
+        uint16_t B_tr = (((px_tr & 0x00FF) & 0x00F8) << 5);
 
-  //       uint16_t R_br = ((px_br & 0x00FF) & 0x00F8);
-  //       uint16_t G_br = ((px_br & 0x00FF) & 0x00FC);
-  //       G_br = (((G_br & 0xE0) >> 5) | ((G_br & 0x1C) << 11));
-  //       uint16_t B_br = (((px_br & 0x00FF) & 0x00F8) << 5);
+        uint16_t R_br = ((px_br & 0x00FF) & 0x00F8);
+        uint16_t G_br = ((px_br & 0x00FF) & 0x00FC);
+        G_br = (((G_br & 0xE0) >> 5) | ((G_br & 0x1C) << 11));
+        uint16_t B_br = (((px_br & 0x00FF) & 0x00F8) << 5);
 
-  //       uint16_t R_bl = ((px_bl & 0x00FF) & 0x00F8);
-  //       uint16_t G_bl = ((px_bl & 0x00FF) & 0x00FC);
-  //       G_bl = (((G_bl & 0xE0) >> 5) | ((G_bl & 0x1C) << 11));
-  //       uint16_t B_bl = (((px_bl & 0x00FF) & 0x00F8) << 5);
+        uint16_t R_bl = ((px_bl & 0x00FF) & 0x00F8);
+        uint16_t G_bl = ((px_bl & 0x00FF) & 0x00FC);
+        G_bl = (((G_bl & 0xE0) >> 5) | ((G_bl & 0x1C) << 11));
+        uint16_t B_bl = (((px_bl & 0x00FF) & 0x00F8) << 5);
 
-  //       ((uint16_t*)raw)[w_dec*row_dec+col_dec] = (R_tl | G_tl | B_tl);
-  //       ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)] = (R_tr | G_tr | B_tr);
-  //       ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (R_br | G_br | B_br);
-  //       ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec] = (R_bl | G_bl | B_bl);
-  //       #endif
-  //     // write the signed grayscale values to the CNN buffer
-  //     cnn_buffer[w_dec*row_dec+col_dec] = (px_tl & 0x00FF)-128;
-  //     cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_tr & 0x00FF)-128;
-  //     cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_br & 0x00FF)-128;
-  //     cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_bl & 0x00FF)-128;
+        ((uint16_t*)raw)[w_dec*row_dec+col_dec] = (R_tl | G_tl | B_tl);
+        ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)] = (R_tr | G_tr | B_tr);
+        ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (R_br | G_br | B_br);
+        ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec] = (R_bl | G_bl | B_bl);
+        #endif
+      // write the signed grayscale values to the CNN buffer
+      cnn_buffer[w_dec*row_dec+col_dec] = (px_tr & 0x00FF)-128;
+      cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_br & 0x00FF)-128;
+      cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_bl & 0x00FF)-128;
+      cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_tl & 0x00FF)-128;
 
-  //     // cnn_buffer[w_dec*row_dec+col_dec] = (px_tr & 0x00FF)-128;
-  //     // cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_br & 0x00FF)-128;
-  //     // cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_tl & 0x00FF)-128;
-  //     // cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_bl & 0x00FF)-128;
-  //   }
-  // }
+      // cnn_buffer[w_dec*row_dec+col_dec] = (px_tr & 0x00FF)-128;
+      // cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_br & 0x00FF)-128;
+      // cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_tl & 0x00FF)-128;
+      // cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_bl & 0x00FF)-128;
+    }
+  }
   // display the image  
   MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h/2, w/2);
 }
