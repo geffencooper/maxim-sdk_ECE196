@@ -65,6 +65,27 @@ void display_RGB565_img(int x_coord, int y_coord)
 	MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
 }
 
+void decimate_half(uint8_t* raw, int w, int h)
+{
+  int w_dec = w >> 1;
+  int h_dec = h >> 1;
+
+  // iterate over all pixels in the top left quadrant
+  // because the image will become 1/4 the size with 1/2 the dimension
+  for(int row_dec = 0; row_dec < h/2; row_dec++)
+  {
+    for(int col_dec = 0; col_dec < (w+1)/2; col_dec++)
+    {
+        // we want to get a 1/2 decimated version of the image
+        int row = row_dec << 1;
+        int col = col_dec << 1;
+
+        // set decimated pixels to every other row and column pixel in original image
+        ((uint16_t*)raw)[w_dec*row_dec+col_dec] = ((uint16_t*)raw)[w*row+col];
+    }
+  }
+}
+
 void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
 {
   uint8_t   *raw; // pointer to raw frame buffer
@@ -84,7 +105,7 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
     Y = luminance (grayscale), lower 8 bits --> Y = YUV_PX & 0x00FF
 
     RGB to grayscale means R=G=B, in RGB565 2R=G=2B because G has an extra bit
-    R = B = Y & 0xF8 (5 bit) G = Y & FC (6 bit)
+    R = B = Y & 0xF8 (5 bit) G = Y & 0xFC (6 bit)
     
     the camera returns each 2 byte pixel in little endian, the tft lib function accounts for this already
     so need to place bits in little endian format
@@ -97,64 +118,74 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
   #define GREEN_PX 0xE003;
   #define BLUE_PX 0x1F00;
 
-  // iterate over all pixels in the top left quadrant
-  for(int row = 0; row < h/2; row++)
-  {
-    for(int col = 0; col < (w+1)/2; col++)
-    {
-      // store temp values to swap with because need to rotate image 90 degrees clockwise
-      // uint8_t px_tl = (((uint16_t*)raw)[w*row+col] & 0x00FF);
-      // uint8_t px_tr = (((uint16_t*)raw)[w*(col)+(w-1-row)] & 0x00FF);
-      // uint8_t px_br = (((uint16_t*)raw)[w*(w-1-row)+(w-1-col)] & 0x00FF);
-      // uint8_t px_bl = (((uint16_t*)raw)[w*(w-1-col)+row] & 0x00FF);
-      
-      // swap the values to rotate the image 90 degrees clockwise
-      // ((uint16_t*)raw)[w*row+col] = px_tr;
-      // ((uint16_t*)raw)[w*(col)+(w-1-row)] = px_br;
-      // ((uint16_t*)raw)[w*(w-1-row)+(w-1-col)] = px_bl;
-      // ((uint16_t*)raw)[w*(w-1-col)+row] = px_tl;
+  // decimate the image
+  decimate_half(raw, w, h);
+  
+  // int w_dec = w >> 1;
+  // int h_dec = h >> 1;
 
-      // uncomment this to display a grayscale image
-      // we need to represent luminance using RGB565
-      // uint16_t R_tl = ((px_tl & 0x00FF) & 0x00F8);
-      // uint16_t G_tl = ((px_tl & 0x00FF) & 0x00FC);
-      // G_tl = (((G_tl & 0xE0) >> 5) | ((G_tl & 0x1C) << 11));
-      // uint16_t B_tl = (((px_tl & 0x00FF) & 0x00F8) << 5);
+  // for(int row_dec = 0; row_dec < h_dec/2; row_dec++)
+  // {
+  //   for(int col_dec = 0; col_dec < (w_dec+1)/2; col_dec++)
+  //   {
+  //       int row = row_dec << 1;
+  //       int col = col_dec << 1;
+        
+  //       // store temp values to swap with because need to rotate image 90 degrees
+  //       uint16_t px_tl = ((uint16_t*)raw)[w_dec*row_dec+col_dec];
+  //       uint16_t px_tr = ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)];
+  //       uint16_t px_br = ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)];
+  //       uint16_t px_bl = ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec];
 
-      // uint16_t R_tr = ((px_tr & 0x00FF) & 0x00F8);
-      // uint16_t G_tr = ((px_tr & 0x00FF) & 0x00FC);
-      // G_tr = (((G_tr & 0xE0) >> 5) | ((G_tr & 0x1C) << 11));
-      // uint16_t B_tr = (((px_tr & 0x00FF) & 0x00F8) << 5);
+  //       // swap the values to rotate the image 90 degrees
+  //       // ((uint16_t*)raw)[w_dec*row_dec+col_dec] = px_tr;
+  //       // ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)] = px_br;
+  //       // ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = px_bl;
+  //       // ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec] = px_tl;
 
-      // uint16_t R_br = ((px_br & 0x00FF) & 0x00F8);
-      // uint16_t G_br = ((px_br & 0x00FF) & 0x00FC);
-      // G_br = (((G_br & 0xE0) >> 5) | ((G_br & 0x1C) << 11));
-      // uint16_t B_br = (((px_br & 0x00FF) & 0x00F8) << 5);
+  //       // uncomment this to display a grayscale image
+  //       // we need to represent luminance using RGB565
+  //       //#define VISUALIZE_GRAY
+  //       #ifdef VISUALIZE_GRAY
+  //       uint16_t R_tl = ((px_tl & 0x00FF) & 0x00F8);
+  //       uint16_t G_tl = ((px_tl & 0x00FF) & 0x00FC);
+  //       G_tl = (((G_tl & 0xE0) >> 5) | ((G_tl & 0x1C) << 11));
+  //       uint16_t B_tl = (((px_tl & 0x00FF) & 0x00F8) << 5);
 
-      // uint16_t R_bl = ((px_bl & 0x00FF) & 0x00F8);
-      // uint16_t G_bl = ((px_bl & 0x00FF) & 0x00FC);
-      // G_bl = (((G_bl & 0xE0) >> 5) | ((G_bl & 0x1C) << 11));
-      // uint16_t B_bl = (((px_bl & 0x00FF) & 0x00F8) << 5);
+  //       uint16_t R_tr = ((px_tr & 0x00FF) & 0x00F8);
+  //       uint16_t G_tr = ((px_tr & 0x00FF) & 0x00FC);
+  //       G_tr = (((G_tr & 0xE0) >> 5) | ((G_tr & 0x1C) << 11));
+  //       uint16_t B_tr = (((px_tr & 0x00FF) & 0x00F8) << 5);
 
-      // ((uint16_t*)raw)[w*row+col] = (R_tl | G_tl | B_tl);
-      // ((uint16_t*)raw)[w*(col)+(w-1-row)] = (R_tr | G_tr | B_tr);
-      // ((uint16_t*)raw)[w*(w-1-row)+(w-1-col)] = (R_br | G_br | B_br);
-      // ((uint16_t*)raw)[w*(w-1-col)+row] = (R_bl | G_bl | B_bl);
+  //       uint16_t R_br = ((px_br & 0x00FF) & 0x00F8);
+  //       uint16_t G_br = ((px_br & 0x00FF) & 0x00FC);
+  //       G_br = (((G_br & 0xE0) >> 5) | ((G_br & 0x1C) << 11));
+  //       uint16_t B_br = (((px_br & 0x00FF) & 0x00F8) << 5);
 
-      // write the signed grayscale values to the CNN buffer
-      // cnn_buffer[w*row+col] = (px_tr & 0x00FF)-128;
-      // cnn_buffer[w*(col)+(w-1-row)] = (px_br & 0x00FF)-128;
-      // cnn_buffer[w*(w-1-row)+(w-1-col)] = (px_tl & 0x00FF)-128;
-      // cnn_buffer[w*(w-1-col)+row] = (px_bl & 0x00FF)-128;
-      
-      // cnn_buffer[w*row+col] = (px_tr & 0x00FF)-128;
-      // cnn_buffer[w*(col)+(w-1-row)] = (px_br & 0x00FF)-128;
-      // cnn_buffer[w*(w-1-row)+(w-1-col)] = (px_tl & 0x00FF)-128;
-      // cnn_buffer[w*(w-1-col)+row] = (px_bl & 0x00FF)-128;
-    }
-  }
+  //       uint16_t R_bl = ((px_bl & 0x00FF) & 0x00F8);
+  //       uint16_t G_bl = ((px_bl & 0x00FF) & 0x00FC);
+  //       G_bl = (((G_bl & 0xE0) >> 5) | ((G_bl & 0x1C) << 11));
+  //       uint16_t B_bl = (((px_bl & 0x00FF) & 0x00F8) << 5);
+
+  //       ((uint16_t*)raw)[w_dec*row_dec+col_dec] = (R_tl | G_tl | B_tl);
+  //       ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)] = (R_tr | G_tr | B_tr);
+  //       ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (R_br | G_br | B_br);
+  //       ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec] = (R_bl | G_bl | B_bl);
+  //       #endif
+  //     // write the signed grayscale values to the CNN buffer
+  //     cnn_buffer[w_dec*row_dec+col_dec] = (px_tl & 0x00FF)-128;
+  //     cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_tr & 0x00FF)-128;
+  //     cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_br & 0x00FF)-128;
+  //     cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_bl & 0x00FF)-128;
+
+  //     // cnn_buffer[w_dec*row_dec+col_dec] = (px_tr & 0x00FF)-128;
+  //     // cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_br & 0x00FF)-128;
+  //     // cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_tl & 0x00FF)-128;
+  //     // cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_bl & 0x00FF)-128;
+  //   }
+  // }
   // display the image  
-  MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
+  MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h/2, w/2);
 }
 
 void TFT_Print(char *str, int x, int y, int font, int length) 
