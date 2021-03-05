@@ -80,16 +80,20 @@ SRCS += scanner_state_machine.c
 SRCS += PIR_sensor.c
 SRCS += cnn.c
 SRCS += softmax.c
+SRCS += cnn_helper_funcs.c
+SRCS += TFT/all_imgs.c
 #SRCS += sla_header.c
 
 # Where to find source files for this test
 VPATH=.
 VPATH += $(CMSIS_ROOT)/Device/Maxim/$(TARGET_UC)/Source
 VPATH += Common/
+VPATH += ./TFT
 
 # Where to find header files for this test
 IPATH = .
 IPATH += Common/
+IPATH += ./TFT
 # Enable assertion checking for development
 PROJ_CFLAGS+=-DMXC_ASSERT_ENABLE 
 
