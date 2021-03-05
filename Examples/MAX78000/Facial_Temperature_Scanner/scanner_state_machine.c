@@ -227,10 +227,10 @@ void execute_ssm()
                 softmax_layer();
                 int face = (*((volatile uint32_t *) 0x50404000));
                 int no_face = (*((volatile uint32_t *) 0x50404004));
-                int x = (*((volatile uint32_t *) 0x50404008))/500;
+                int x = (*((volatile uint32_t *) 0x50404008))/480;
                 int y = (*((volatile uint32_t *) 0x5040400C))/500;
                 int w = (*((volatile uint32_t *) 0x50404010))/500;
-                int h = (*((volatile uint32_t *) 0x50404014))/500;
+                int h = (*((volatile uint32_t *) 0x50404014))/480;
                 printf("face: %i\n",face);
                 printf("no face: %i\n",no_face);
                 printf("x: %i\n",x); // 0,0,0 
