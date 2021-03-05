@@ -44,22 +44,23 @@ void softmax_layer(void)
   softmax_q17p14_q15((const q31_t *) ml_data, NUM_CLASSES, ml_softmax);
 }
 
-// simple getter function
+// simple getter function for the CNN input data buffer
 uint32_t* get_cnn_buffer()
 {
     return cnn_buffer;
 }
 
+// this function does a forward pass through the CNN
 cnn_output_t* run_cnn(int display_txt, int display_bb)
 {
-    int i;
-    int digs, tens;
-    int last_state = 0;
-    int max = 0;
-    int max_i = 0;
+    int digs, tens; // format probability
+    int last_state = 0; // only clear text if state changed
+    int max = 0; // the current highest class probability
+    int max_i = 0; // the class with the highest probability (0 = face, 1 = no face)
 
+    // first get an image from the camera and load it into the CNN buffer
     capture_camera_img();
-    load_grayscale_img(40,100,get_cnn_buffer());
+    load_grayscale_img(40,100,get_cnn_buffer()); // this also displays the image to the screen at (40,100)
     
     // Enable CNN clock
     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_CNN);
@@ -73,10 +74,14 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
     while (cnn_time == 0)
     __WFI(); // Wait for CNN
 
+    // classify the output
     softmax_layer();
+
+
+    // get the output data from the CNN output layer's data memory instance
+
     // int face = (*((volatile uint32_t *) 0x50404000));
     // int no_face = (*((volatile uint32_t *) 0x50404004));
-    output.face_status = max_i;
     output.x = (*((volatile uint32_t *) 0x50404008))/480;
     output.y = (*((volatile uint32_t *) 0x5040400C))/500;
     output.w = (*((volatile uint32_t *) 0x50404010))/500;
@@ -91,8 +96,7 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
 #endif
     
     printf("Classification results:\n");
-    
-    for (i = 0; i < 2; i++) 
+    for (int i = 0; i < NUM_CLASSES; i++) 
     {
         digs = (1000 * ml_softmax[i] + 0x4000) >> 15;
         tens = digs % 10;
@@ -104,81 +108,95 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
         }
         printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
     }
+
+    // store the output data state
     output.face_status = max_i;
+
+    // a face was detected
     if(max_i == 0 && display_txt)
     {
         printf("DETECTED A FACE: %i\n", max);
         //memset(buff,32,TFT_BUFF_SIZE);
         if(max_i != last_state)
         {
-            MXC_TFT_FillRect(&clear_word, 4);
-            TFT_Print(buff, 0, 0, 3, sprintf(buff, "DETECTED A FACE"));
+           // MXC_TFT_FillRect(&clear_word, 4);
+           // TFT_Print(buff, 0, 0, 3, sprintf(buff, "DETECTED A FACE"));
         }
     }
+    // no face was detected
     else if(max_i != 0 && display_txt)
     {
         printf("NO FACE DETECTED: %i\n", max);
         //memset(buff,32,TFT_BUFF_SIZE);
         if(max_i != last_state)
         {
-            MXC_TFT_FillRect(&clear_word, 4);
-            TFT_Print(buff, 0, 0, 3, sprintf(buff, "NO FACE DETECTED"));
+           // MXC_TFT_FillRect(&clear_word, 4);
+           // TFT_Print(buff, 0, 0, 3, sprintf(buff, "NO FACE DETECTED"));
         }
     }
     last_state = max_i;
     
+    // if there is a face then display the bounding box
     if(max_i == 0 && display_bb)
     {
-        printf("positioing state so display bb\n");
-        
         //printf("face: %i\n",face);
         //printf("no face: %i\n",no_face);
-        printf("x: %i\n",output.x); // 0,0,0 
-        printf("y: %i\n",output.y); // 0,0,1
-        printf("w: %i\n",output.w); // 0,0,2
-        printf("h: %i\n",output.h); // 0,0,3
+        printf("x: %i\n",output.x);
+        printf("y: %i\n",output.y);
+        printf("w: %i\n",output.w);
+        printf("h: %i\n",output.h);
 
+        // the sides of the bounding box
         area_t top = {100, 150, 4, 4};
         area_t left = {100, 150, 4, 4};
         area_t bottom = {100, 150, 4, 4};
         area_t right = {100, 150, 4, 4};
 
+        // the top should not go off of the screen
         top.x = (output.x >= 0 && output.x < SCREEN_W) ? output.x : 0;
         top.y = (output.y >= 0 && output.y < SCREEN_H) ? output.y : 0;
         top.w = (top.x+output.w) <=SCREEN_W ? output.w : SCREEN_W-top.x;
         top.h = 2;
 
+        // the bottom should not go off of the screen
         bottom.x = top.x;
         bottom.y = (output.y+output.h-BB_W) <= SCREEN_H-BB_W ? output.y+output.h-BB_W : SCREEN_H-BB_W;
         bottom.w = top.w;
         bottom.h = BB_W;
 
+        // the left should not go off of the screen
         left.x = top.x;
         left.y = top.y;
         left.w = BB_W;
         left.h = (left.y+output.h) <= SCREEN_H ? output.h : SCREEN_H-left.y;
 
+        // the right should not go off of the screen
         right.x = (output.x+output.w) <= SCREEN_W-BB_W ? (output.x+output.w): SCREEN_W-BB_W;
         right.y = top.y;
         right.w = BB_W;
         right.h = left.h;
 
+        // shift the box to the screen X location
         top.x += SCREEN_X;
         bottom.x += SCREEN_X;
         left.x += SCREEN_X;
         right.x += SCREEN_X;
 
+        // shift the box to the screen Y location
+        // also flip the box because the screen is upsidedown
         top.y = (SCREEN_H-BB_W-top.y)+SCREEN_Y;
         bottom.y = (SCREEN_H-BB_W-bottom.y)+SCREEN_Y;
         left.y = (SCREEN_H-left.y-left.h)+SCREEN_Y;
         right.y = (SCREEN_H-right.y-right.h)+SCREEN_Y;
 
-
+        // draw the box
         MXC_TFT_FillRect(&top, BB_COLOR);
         MXC_TFT_FillRect(&bottom, BB_COLOR);
         MXC_TFT_FillRect(&left, BB_COLOR);
         MXC_TFT_FillRect(&right, BB_COLOR);
     }
+    // this moves the cursor to the top left corner, allows for nicer printf output
+    // that is easier to read
     printf("\033[0;0f");
     return &output;
 }

@@ -23,7 +23,7 @@ void motion_isr(void* ssm_action)
 }
 
 // GPIO port 2 pin 7 is available on the board
-void init_PIR_sensor(void* ssm_action)
+void init_PIR_sensor(ssm_action_fn ssm_action)
 {
     motion_gpio.port = MXC_GPIO2;
     motion_gpio.mask = MXC_GPIO_PIN_7;

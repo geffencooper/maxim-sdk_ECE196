@@ -1,6 +1,9 @@
+// This file defines the initialization function for the PIR motion sensor
+
 #ifndef PIR_SENSOR_H
 #define PIR_SENSOR_H
 
+#include "ssm_action.h"
 /*
     Description: This function sets up the GPIO for the PIR motion sensor
 
@@ -13,6 +16,6 @@
 
     Return: none
 */
-void init_PIR_sensor(void* ssm_action);
+void init_PIR_sensor(ssm_action_fn ssm_action);
 
 #endif

@@ -82,6 +82,7 @@ SRCS += cnn.c
 SRCS += softmax.c
 SRCS += cnn_helper_funcs.c
 SRCS += TFT/all_imgs.c
+SRCS += timer_funcs.c
 #SRCS += sla_header.c
 
 # Where to find source files for this test

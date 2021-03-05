@@ -39,6 +39,12 @@
 #include "mxc_device.h"
 #include "mxc_sys.h"
 #include "stdio.h"
+#include "timer_funcs.h"
+
+void action_fn()
+{
+  printf("expired\n");
+}
 
 int main(void)
 {
