@@ -20,6 +20,7 @@
 #include "HiLetgo_ILI9341.h"
 #include "PIR_sensor.h"
 #include "cnn_helper_funcs.h"
+#include "timer_funcs.h"
 
 // Macros
 #define DISPLAY_BB 1 // option to display bounding box to LCD
@@ -29,35 +30,59 @@
 
 
 // This struct defines the scanner state machine
-// The only two members are the state and a variable to
-// store the amount of time until the state expires
+// The only two members are the state and a function pointer to
+// get the amount of time until the state expires
 typedef struct 
 {
     scan_state_t current_state;
-    uint8_t time_left;
+    const uint8_t (*time_left) (void); // should not be changed
 } scanner_state_machine_t;
 
 
 // Global variables
-volatile scanner_state_machine_t ssm;
+volatile scanner_state_machine_t ssm = {IDLE, get_state_time_left};
 
 
-// A private functio  for setting the state machine's state
+// A private function for setting the state machine's state
 // It also starts the timer for a given state.
 static void set_state(scan_state_t state)
 {
+    // set the state
     ssm.current_state = state;
-    // start the timer
+
+    // start the timer for non-idle states
+    if(state != IDLE && state != RESET_STATE)
+    {
+        reset_state_timer();
+        start_state_timer();
+    }
 }
 
 
 // This is the ssm_action_fn for the motion sensor.
-// It disables the interrupt, transitions states, and starts the CNN
+// It disables the motion interrupt, transitions states, and starts the CNN
 static void motion_sensor_trigger()
 {
     MXC_GPIO_DisableInt(MXC_GPIO2, MXC_GPIO_PIN_7);
     set_state(SEARCH);
     startup_cnn();
+}
+
+// This function is called after one 'cycle' of the state machine
+// completes or a state expires
+static void reset_ssm()
+{
+    reset_state_timer();
+    MXC_GPIO_EnableInt(MXC_GPIO2, MXC_GPIO_PIN_7);
+    MXC_TFT_ClearScreen();
+}
+
+
+// This is the ssm_action_fn for the timer expiration
+// It simply activates the reset state
+static void state_expired()
+{
+    set_state(RESET_STATE);
 }
 
 // This function initializes system parameters
@@ -86,6 +111,11 @@ int init_ssm()
     }
     init_ILI_LCD();
     init_PIR_sensor(motion_sensor_trigger);
+    ret = init_state_timer(5, state_expired);
+    if(ret < 0)
+    {
+        return -1;
+    }
     // init temp sensor
 
     printf("Scanner Initialized Successfully\n");
@@ -105,12 +135,11 @@ void execute_ssm()
         {
             case IDLE:
             {
-                // do nothing
                 break;
             }
             case SEARCH:
             {
-                printf("STATE: search\n");
+                printf("STATE: search\ntime left: %i\n",ssm.time_left());
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, NULL);
                 if(cnn_out->face_status == FACE_PRESENT)
                 {
@@ -120,7 +149,7 @@ void execute_ssm()
             }
             case POSITIONING:
             {
-                printf("STATE: positioning\n");
+                printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                 if(cnn_out->face_status == NO_FACE_PRESENT)
                 {
@@ -132,17 +161,18 @@ void execute_ssm()
             {
                 break;
             }
+            case RESET_STATE:
+            {
+                reset_ssm();
+                set_state(IDLE);
+                break;
+            }
             default:
             {
                 break;
             }
         }
     }
-}
-
-static void reset_ssm()
-{
-
 }
 
 

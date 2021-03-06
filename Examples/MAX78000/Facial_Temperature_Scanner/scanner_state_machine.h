@@ -12,7 +12,8 @@ typedef enum
     IDLE = 0,
     SEARCH,
     POSITIONING,
-    MEASUREMENT
+    MEASUREMENT,
+    RESET_STATE // this resets the state machine before going to idle
 } scan_state_t;
 
 /*

@@ -7,8 +7,8 @@
 #include "ssm_action.h"
 
 /*
-    Description: This function sets up a "one shot" timer using the Maxim
-                 integrated drivers. When the timer expires an
+    Description: This function sets up a continuous timer using the Maxim
+                 integrated drivers. When the timer expires (every 1 sec) an
                  interrupt will be generated. This interrupt can
                  interact with the state machine by calling an
                  "scanner state machine action function" which
@@ -47,7 +47,7 @@ void reset_state_timer();
 
 /*
     Description: This function starts the timer and should be called
-                 after init or after reset to count for a complete period.
+                 after init or after reset.
 
     Parameters: none
 

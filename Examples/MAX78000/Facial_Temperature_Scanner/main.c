@@ -41,11 +41,6 @@
 #include "stdio.h"
 #include "timer_funcs.h"
 
-void action_fn()
-{
-  printf("expired\n");
-}
-
 int main(void)
 {
   // DO NOT DELETE THIS LINE:

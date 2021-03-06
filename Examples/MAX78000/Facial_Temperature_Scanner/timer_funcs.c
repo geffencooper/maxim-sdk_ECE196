@@ -18,7 +18,7 @@ volatile int current_seconds_count = 0;
 void expiration_handler()
 {
     // Clear interrupt
-    MXC_TMR_ClearFlags(MXC_TMR0);
+    MXC_TMR_ClearFlags(MXC_TMR1);
     
     // increments a second
     current_seconds_count += 1;
@@ -39,11 +39,11 @@ int init_state_timer(int expiration_period, ssm_action_fn ssm_action)
     expiration_action = ssm_action;
 
     // setup the interrupt for timer 0
-    NVIC_SetVector(TMR0_IRQn, expiration_handler);
-    NVIC_EnableIRQ(TMR0_IRQn);
+    NVIC_SetVector(TMR1_IRQn, expiration_handler);
+    NVIC_EnableIRQ(TMR1_IRQn);
 
     // init timer 0 to interrupt every 1s (32KHz clock with prescaler 32 and count compare 1024)
-    MXC_TMR_Shutdown(MXC_TMR0);
+    MXC_TMR_Shutdown(MXC_TMR1);
     tmr.pres = TMR_PRES_32;
     tmr.mode = TMR_MODE_CONTINUOUS;
     tmr.bitMode = TMR_BIT_MODE_32;
@@ -52,14 +52,14 @@ int init_state_timer(int expiration_period, ssm_action_fn ssm_action)
     tmr.pol = 0;
     
     // init the timer
-    if (MXC_TMR_Init(MXC_TMR0, &tmr, true) != E_NO_ERROR) 
+    if (MXC_TMR_Init(MXC_TMR1, &tmr, true) != E_NO_ERROR) 
     {
         printf("Failed one-shot timer Initialization.\n");
         return -1;
     }
     
     // enable the interrupt
-    MXC_TMR_EnableInt(MXC_TMR0);
+    MXC_TMR_EnableInt(MXC_TMR1);
 
     printf("State timer initialized.\n\n");
     return 0;
@@ -72,17 +72,18 @@ int get_state_time_left()
 
 void reset_state_timer()
 {
+    MXC_TMR_Stop(MXC_TMR1);
     current_seconds_count = 0;
-    MXC_TMR_Stop(MXC_TMR0);
-    MXC_TMR0->cnt = 1; // this is the reset value
+    MXC_TMR1->cnt = 1; // this is the reset value for the timer count
 }
 
 void start_state_timer()
 {
-    MXC_TMR_Start(MXC_TMR0);
+    printf("timer started\n");
+    MXC_TMR_Start(MXC_TMR1);
 }
 
 void stop_state_timer()
 {
-    MXC_TMR_Stop(MXC_TMR0);
+    MXC_TMR_Stop(MXC_TMR1);
 }
