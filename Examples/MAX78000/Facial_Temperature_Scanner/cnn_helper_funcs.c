@@ -202,7 +202,7 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
     }
     // this moves the cursor to the top left corner, allows for nicer printf output
     // that is easier to read
-    // /printf("\033[0;0f");
+    // printf("\033[0;0f");
     return &output;
 }
 

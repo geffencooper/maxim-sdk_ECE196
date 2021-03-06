@@ -113,7 +113,7 @@ int init_ssm()
     }
     init_ILI_LCD();
     init_PIR_sensor(motion_sensor_trigger);
-    ret = init_state_timer(200, state_expired);
+    ret = init_state_timer(7, state_expired);
     if(ret < 0)
     {
         return -1;

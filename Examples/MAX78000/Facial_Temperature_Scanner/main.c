@@ -40,23 +40,31 @@
 #include "mxc_sys.h"
 #include "stdio.h"
 #include "timer_funcs.h"
+#include "IR_temp_sensor.h"
 
 int main(void)
 {
   // DO NOT DELETE THIS LINE:
   MXC_Delay(SEC(2)); // Let debugger interrupt if needed
 
-  // initialize the state machine and the peripherals
-  printf("initializing state machine\n");
-  int ret = init_ssm();
-  if(ret < 0)
+  printf("start\n");
+  init_IR_temp_sensor();
+  while(1)
   {
-    printf("Error: could not initialize facial scanner. Check error messages.\n");
-    return -1;
+    tx_data();
   }
 
-  // start the state machine
-  execute_ssm();
+  // // initialize the state machine and the peripherals
+  // printf("initializing state machine\n");
+  // int ret = init_ssm();
+  // if(ret < 0)
+  // {
+  //   printf("Error: could not initialize facial scanner. Check error messages.\n");
+  //   return -1;
+  // }
+
+  // // start the state machine
+  // execute_ssm();
 }
 #ifdef MASTERDMA
         MXC_DMA_ReleaseChannel(0);
