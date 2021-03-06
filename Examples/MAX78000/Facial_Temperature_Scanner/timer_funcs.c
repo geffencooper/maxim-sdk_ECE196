@@ -79,7 +79,6 @@ void reset_state_timer()
 
 void start_state_timer()
 {
-    printf("timer started\n");
     MXC_TMR_Start(MXC_TMR1);
 }
 

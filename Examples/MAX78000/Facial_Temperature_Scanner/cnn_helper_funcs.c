@@ -92,10 +92,10 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
     MXC_SYS_ClockDisable(MXC_SYS_PERIPH_CLOCK_CNN);
 
 #ifdef CNN_INFERENCE_TIMER
-    printf("Approximate inference time: %u us\n\n", cnn_time);
+    //printf("Approximate inference time: %u us\n\n", cnn_time);
 #endif
     
-    printf("Classification results:\n");
+   // printf("Classification results:\n");
     for (int i = 0; i < NUM_CLASSES; i++) 
     {
         digs = (1000 * ml_softmax[i] + 0x4000) >> 15;
@@ -106,7 +106,7 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
             max = digs;
             max_i = i;
         }
-        printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
+        //printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
     }
 
     // store the output data state
@@ -115,7 +115,7 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
     // a face was detected
     if(max_i == 0 && display_txt)
     {
-        printf("DETECTED A FACE: %i\n", max);
+        //printf("DETECTED A FACE: %i\n", max);
         //memset(buff,32,TFT_BUFF_SIZE);
         if(max_i != last_state)
         {
@@ -126,7 +126,7 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
     // no face was detected
     else if(max_i != 0 && display_txt)
     {
-        printf("NO FACE DETECTED: %i\n", max);
+        //printf("NO FACE DETECTED: %i\n", max);
         //memset(buff,32,TFT_BUFF_SIZE);
         if(max_i != last_state)
         {
@@ -141,16 +141,16 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
     {
         //printf("face: %i\n",face);
         //printf("no face: %i\n",no_face);
-        printf("x: %i\n",output.x);
-        printf("y: %i\n",output.y);
-        printf("w: %i\n",output.w);
-        printf("h: %i\n",output.h);
+        // printf("x: %i\n",output.x);
+        // printf("y: %i\n",output.y);
+        // printf("w: %i\n",output.w);
+        // printf("h: %i\n",output.h);
 
         // the sides of the bounding box
-        area_t top = {100, 150, 4, 4};
-        area_t left = {100, 150, 4, 4};
-        area_t bottom = {100, 150, 4, 4};
-        area_t right = {100, 150, 4, 4};
+        static area_t top = {100, 150, 4, 4};
+        static area_t left = {100, 150, 4, 4};
+        static area_t bottom = {100, 150, 4, 4};
+        static area_t right = {100, 150, 4, 4};
 
         // the top should not go off of the screen
         top.x = (output.x >= 0 && output.x < SCREEN_W) ? output.x : 0;
@@ -194,10 +194,15 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
         MXC_TFT_FillRect(&bottom, BB_COLOR);
         MXC_TFT_FillRect(&left, BB_COLOR);
         MXC_TFT_FillRect(&right, BB_COLOR);
+
+        output.x = top.x;
+        output.y = top.y;
+        output.w = top.w;
+        output.h = left.h;
     }
     // this moves the cursor to the top left corner, allows for nicer printf output
     // that is easier to read
-    printf("\033[0;0f");
+    // /printf("\033[0;0f");
     return &output;
 }
 

@@ -27,6 +27,8 @@
 #define DISPLAY_FACE_STATUS 1 // option to display text to LCD ("Face Detected")
 #define FACE_PRESENT 0
 #define NO_FACE_PRESENT 1
+#define CENTER_X 80
+#define CENTER_Y 80
 
 
 // This struct defines the scanner state machine
@@ -111,7 +113,7 @@ int init_ssm()
     }
     init_ILI_LCD();
     init_PIR_sensor(motion_sensor_trigger);
-    ret = init_state_timer(5, state_expired);
+    ret = init_state_timer(200, state_expired);
     if(ret < 0)
     {
         return -1;
@@ -139,7 +141,7 @@ void execute_ssm()
             }
             case SEARCH:
             {
-                printf("STATE: search\ntime left: %i\n",ssm.time_left());
+                //printf("STATE: search\ntime left: %i\n",ssm.time_left());
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, NULL);
                 if(cnn_out->face_status == FACE_PRESENT)
                 {
@@ -149,12 +151,61 @@ void execute_ssm()
             }
             case POSITIONING:
             {
-                printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
+                //printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                 if(cnn_out->face_status == NO_FACE_PRESENT)
                 {
                     set_state(SEARCH);
                 } 
+                static area_t ideal_top = {80, 230, 80, 1};
+                static area_t ideal_left = {160, 130, 1, 100};
+                static area_t ideal_bottom = {80, 130, 80, 1};
+                static area_t ideal_right = {80, 130, 1, 100};
+
+                int diff_x = cnn_out->x - ideal_top.x;
+                int diff_y = cnn_out->y - ideal_top.y;
+
+                printf("x: %i\t", diff_x);
+                if(diff_x < 15 && diff_x > -15)
+                {
+                    printf("GOOD     \n");
+                }
+                else
+                {
+                    if(diff_x > 15)
+                    {
+                        printf("MOVE RIGHT\n");
+                    }
+                    else
+                    {
+                        printf("MOVE LEFT\n");
+                    }
+                }
+                printf("y: %i\t", diff_y);
+                if(diff_y < 15 && diff_y > -15)
+                {
+                    printf("GOOD      \n");
+                }
+                else
+                {
+                    if(diff_y > 15)
+                    {
+                        printf("MOVE DOWN\n");
+                    }
+                    else
+                    {
+                        printf("MOVE UP\n");
+                    }
+                }
+                // printf("w: %i\n",cnn_out->w - ideal_bottom.w);
+                // printf("h: %i\n",cnn_out->h - ideal_left.h);
+                printf("\033[0;0f");
+
+                MXC_TFT_FillRect(&ideal_top, BLACK);
+                MXC_TFT_FillRect(&ideal_bottom, BLACK);
+                MXC_TFT_FillRect(&ideal_left, BLACK);
+                MXC_TFT_FillRect(&ideal_right, BLACK);
+                MXC_TFT_FillCircle(120,180,3,BLACK);
                 break;
             }
             case MEASUREMENT:
