@@ -164,14 +164,17 @@ void execute_ssm()
 
                 int diff_x = cnn_out->x - ideal_top.x;
                 int diff_y = cnn_out->y - ideal_top.y;
+                uint8_t is_good = 0;
 
                 printf("x: %i\t", diff_x);
                 if(diff_x < 15 && diff_x > -15)
                 {
                     printf("GOOD     \n");
+                    is_good = 1;
                 }
                 else
                 {
+                    is_good = 0;
                     if(diff_x > 15)
                     {
                         printf("MOVE RIGHT\n");
@@ -185,9 +188,11 @@ void execute_ssm()
                 if(diff_y < 15 && diff_y > -15)
                 {
                     printf("GOOD      \n");
+                    is_good &= 1;
                 }
                 else
                 {
+                    is_good = 0;
                     if(diff_y > 15)
                     {
                         printf("MOVE DOWN\n");
@@ -205,7 +210,14 @@ void execute_ssm()
                 MXC_TFT_FillRect(&ideal_bottom, BLACK);
                 MXC_TFT_FillRect(&ideal_left, BLACK);
                 MXC_TFT_FillRect(&ideal_right, BLACK);
-                MXC_TFT_FillCircle(120,180,3,BLACK);
+                if(is_good)
+                {
+                    MXC_TFT_FillCircle(120,180,3,GREEN);
+                }
+                else
+                {
+                    MXC_TFT_FillCircle(120,180,3,BLACK);
+                }
                 break;
             }
             case MEASUREMENT:

@@ -155,12 +155,12 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
         // the top should not go off of the screen
         top.x = (output.x >= 0 && output.x < SCREEN_W) ? output.x : 0;
         top.y = (output.y >= 0 && output.y < SCREEN_H) ? output.y : 0;
-        top.w = (top.x+output.w) <=SCREEN_W ? output.w : SCREEN_W-top.x;
+        top.w = (top.x+output.w) < SCREEN_W ? output.w : SCREEN_W-top.x-1;
         top.h = 2;
 
         // the bottom should not go off of the screen
         bottom.x = top.x;
-        bottom.y = (output.y+output.h-BB_W) <= SCREEN_H-BB_W ? output.y+output.h-BB_W : SCREEN_H-BB_W;
+        bottom.y = (output.y+output.h-BB_W) < SCREEN_H-BB_W ? output.y+output.h-BB_W : SCREEN_H-BB_W-1;
         bottom.w = top.w;
         bottom.h = BB_W;
 
@@ -168,10 +168,10 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
         left.x = top.x;
         left.y = top.y;
         left.w = BB_W;
-        left.h = (left.y+output.h) <= SCREEN_H ? output.h : SCREEN_H-left.y;
+        left.h = (left.y+output.h) < SCREEN_H ? output.h : SCREEN_H-left.y-1;
 
         // the right should not go off of the screen
-        right.x = (output.x+output.w) <= SCREEN_W-BB_W ? (output.x+output.w): SCREEN_W-BB_W;
+        right.x = (output.x+output.w) < SCREEN_W-BB_W ? (output.x+output.w): SCREEN_W-BB_W-1;
         right.y = top.y;
         right.w = BB_W;
         right.h = left.h;
@@ -184,10 +184,10 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
 
         // shift the box to the screen Y location
         // also flip the box because the screen is upsidedown
-        top.y = (SCREEN_H-BB_W-top.y)+SCREEN_Y;
-        bottom.y = (SCREEN_H-BB_W-bottom.y)+SCREEN_Y;
-        left.y = (SCREEN_H-left.y-left.h)+SCREEN_Y;
-        right.y = (SCREEN_H-right.y-right.h)+SCREEN_Y;
+        top.y = (SCREEN_H-BB_W-top.y-1)+SCREEN_Y;
+        bottom.y = (SCREEN_H-BB_W-bottom.y-1)+SCREEN_Y;
+        left.y = (SCREEN_H-left.y-left.h-1)+SCREEN_Y;
+        right.y = (SCREEN_H-right.y-right.h-1)+SCREEN_Y;
 
         // draw the box
         MXC_TFT_FillRect(&top, BB_COLOR);
