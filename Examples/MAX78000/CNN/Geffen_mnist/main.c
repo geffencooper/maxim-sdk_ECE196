@@ -125,7 +125,7 @@ int main(void)
 
   /* Set the screen rotation because camera flipped*/
   #ifdef EV
-	MXC_TFT_SetRotation(SCREEN_ROTATE);
+	MXC_TFT_SetRotation(SCREEN_FLIP);
   #endif
 
   // Setup the camera image dimensions, pixel format and data acquiring details.
@@ -162,6 +162,7 @@ int main(void)
   cnn_load_bias();
   cnn_configure(); // Configure state machine
     
+  area_t clear_word = {0, 70, 120, 20};
 
   while(true)
   {
@@ -194,12 +195,24 @@ int main(void)
     //cnn_disable(); // Shut down CNN clock, disable peripheral
 
     printf("Classification results:\n");
+    int max = 0;
+    int max_i = 0;
     for (i = 0; i < CNN_NUM_OUTPUTS; i++) {
       digs = (1000 * ml_softmax[i] + 0x4000) >> 15;
       tens = digs % 10;
       digs = digs / 10;
       printf("[%7d] -> Class %d: %d.%d%%\n", ml_data[i], i, digs, tens);
+      if(digs > max)
+      {
+          max = digs;
+          max_i = i;
+      }
     }
+
+    memset(buff,32,TFT_BUFF_SIZE);
+    sprintf(buff, "DIGIT: %i", max_i);
+    MXC_TFT_FillRect(&clear_word, 4);
+    TFT_Print(buff, 0, 70, 3);
     printf("\033[0;0f");
   }
   return 0;
