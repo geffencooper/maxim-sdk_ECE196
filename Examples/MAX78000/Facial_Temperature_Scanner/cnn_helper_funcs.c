@@ -8,13 +8,12 @@
 #include "camera_funcs.h"
 #include "HiLetgo_ILI9341.h"
 #include "tft_fthr.h"
-#include "bitmap.h"
 
 // macros
 #define SCREEN_W 160 // image output width
 #define SCREEN_H 160 // image output height
 #define SCREEN_X 40 // image output top left corner
-#define SCREEN_Y 100 // image output top left corner
+#define SCREEN_Y 60 // image output top left corner
 #define BB_COLOR YELLOW // the bounding box color
 #define BB_W 2 // the bounding box width in pixels
 #define TFT_BUFF_SIZE   50 // TFT text buffer size
@@ -60,7 +59,7 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
 
     // first get an image from the camera and load it into the CNN buffer
     capture_camera_img();
-    load_grayscale_img(40,100,get_cnn_buffer()); // this also displays the image to the screen at (40,100)
+    load_grayscale_img(SCREEN_X,SCREEN_Y,get_cnn_buffer()); // this also displays the image to the screen at (40,100)
     
     // Enable CNN clock
     MXC_SYS_ClockEnable(MXC_SYS_PERIPH_CLOCK_CNN);
@@ -176,26 +175,25 @@ cnn_output_t* run_cnn(int display_txt, int display_bb)
         right.w = BB_W;
         right.h = left.h;
 
-        // shift the box to the screen X location
-        top.x += SCREEN_X;
-        bottom.x += SCREEN_X;
-        left.x += SCREEN_X;
-        right.x += SCREEN_X;
+        // shift the box y-coordinates to the screen Y position
+        top.y += SCREEN_Y;
+        bottom.y += SCREEN_Y;
+        left.y += SCREEN_Y;
+        right.y += SCREEN_Y;
 
-        // shift the box to the screen Y location
-        // also flip the box because the screen is upsidedown
-        top.y = (SCREEN_H-BB_W-top.y-1)+SCREEN_Y;
-        bottom.y = (SCREEN_H-BB_W-bottom.y-1)+SCREEN_Y;
-        left.y = (SCREEN_H-left.y-left.h-1)+SCREEN_Y;
-        right.y = (SCREEN_H-right.y-right.h-1)+SCREEN_Y;
+        // flip the box over horizontally and shift it to the screen X position
+        top.x = (SCREEN_W-BB_W-top.x-top.w)+SCREEN_X+1;
+        bottom.x = (SCREEN_W-BB_W-bottom.x-bottom.w)+SCREEN_X+1;
+        left.x = (SCREEN_W-left.x-left.w)+SCREEN_X-1;
+        right.x = (SCREEN_W-right.x-right.w)+SCREEN_X-1;
 
         // draw the box
-        MXC_TFT_FillRect(&top, BB_COLOR);
-        MXC_TFT_FillRect(&bottom, BB_COLOR);
-        MXC_TFT_FillRect(&left, BB_COLOR);
-        MXC_TFT_FillRect(&right, BB_COLOR);
+        MXC_TFT_FillRect(&top, YELLOW);
+        MXC_TFT_FillRect(&bottom, YELLOW);
+        MXC_TFT_FillRect(&left, YELLOW);
+        MXC_TFT_FillRect(&right, YELLOW);
 
-        output.x = top.x;
+        output.x = top.x+top.w;
         output.y = top.y;
         output.w = top.w;
         output.h = left.h;

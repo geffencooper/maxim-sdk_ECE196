@@ -21,6 +21,7 @@
 #include "PIR_sensor.h"
 #include "cnn_helper_funcs.h"
 #include "timer_funcs.h"
+#include "IR_temp_sensor.h"
 
 // Macros
 #define DISPLAY_BB 1 // option to display bounding box to LCD
@@ -29,7 +30,11 @@
 #define NO_FACE_PRESENT 1
 #define CENTER_X 80
 #define CENTER_Y 80
+#define LCD_TEXT_BUFF_SIZE
 
+// Globals
+
+char lcd_text_buff[LCD_TEXT_BUFF_SIZE];
 
 // This struct defines the scanner state machine
 // The only two members are the state and a function pointer to
@@ -87,6 +92,15 @@ static void state_expired()
     set_state(RESET_STATE);
 }
 
+
+// This is the ssm_action_fn for the IR sensor
+// MEASUREMENT is the last state so it should reset after
+static void measurement_complete()
+{
+    set_state(RESET_STATE);
+}
+
+
 // This function initializes system parameters
 static void init_system()
 {
@@ -113,12 +127,12 @@ int init_ssm()
     }
     init_ILI_LCD();
     init_PIR_sensor(motion_sensor_trigger);
-    ret = init_state_timer(7, state_expired);
+    ret = init_state_timer(70, state_expired);
     if(ret < 0)
     {
         return -1;
     }
-    // init temp sensor
+    init_IR_temp_sensor();
 
     printf("Scanner Initialized Successfully\n");
 
@@ -131,50 +145,128 @@ int init_ssm()
 void execute_ssm()
 {
     cnn_output_t* cnn_out;
+    area_t ideal_top = {80, 90, 80, 1};
+    area_t ideal_left = {80, 90, 1, 100};
+    area_t ideal_bottom = {80, 190, 80, 1};
+    area_t ideal_right = {160, 90, 1, 100};
+    int diff_x = 0;
+    int diff_y = 0;
+    uint8_t is_centered = 0;
+
     while(1)
     {
         switch (ssm.current_state)
         {
-            case IDLE:
+            case IDLE: 
             {
                 break;
             }
             case SEARCH:
             {
-                //printf("STATE: search\ntime left: %i\n",ssm.time_left());
+                printf("STATE: search\ntime left: %i\n",ssm.time_left());
+                TFT_Print(lcd_text_buff, 10, 10, (int)&SansSerif19x19[0], sprintf(lcd_text_buff, "STATE:"));
+                TFT_Print(lcd_text_buff, 90, 10, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "SEARCH"));
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, NULL);
                 if(cnn_out->face_status == FACE_PRESENT)
                 {
                     set_state(POSITIONING);
                 }
+                printf("\033[0;0f");
                 break;
             }
             case POSITIONING:
             {
-                //printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
+                printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                 if(cnn_out->face_status == NO_FACE_PRESENT)
                 {
                     set_state(SEARCH);
                 } 
-                static area_t ideal_top = {80, 230, 80, 1};
-                static area_t ideal_left = {160, 130, 1, 100};
-                static area_t ideal_bottom = {80, 130, 80, 1};
-                static area_t ideal_right = {80, 130, 1, 100};
-
-                int diff_x = cnn_out->x - ideal_top.x;
-                int diff_y = cnn_out->y - ideal_top.y;
-                uint8_t is_good = 0;
+                
+                diff_x = cnn_out->x - ideal_right.x;
+                diff_y = cnn_out->y - ideal_top.y;
+                is_centered = 0;
 
                 printf("x: %i\t", diff_x);
                 if(diff_x < 15 && diff_x > -15)
                 {
                     printf("GOOD     \n");
-                    is_good = 1;
+                    is_centered = 1;
                 }
                 else
                 {
-                    is_good = 0;
+                    is_centered = 0;
+                    if(diff_x > 15)
+                    {
+                        printf("MOVE LEFT\n");
+                    }
+                    else
+                    {
+                        printf("MOVE RIGHT\n");
+                    }
+                }
+                printf("y: %i\t", diff_y);
+                if(diff_y < 15 && diff_y > -15)
+                {
+                    printf("GOOD      \n");
+                    is_centered &= 1;
+                }
+                else
+                {
+                    is_centered = 0;
+                    if(diff_y > 15)
+                    {
+                        printf("MOVE UP\n");
+                    }
+                    else
+                    {
+                        printf("MOVE DOWN\n");
+                    }
+                }
+                // printf("w: %i\n",cnn_out->w - ideal_bottom.w);
+                // printf("h: %i\n",cnn_out->h - ideal_left.h);
+                printf("\033[0;0f");
+
+                MXC_TFT_FillRect(&ideal_top, BLACK);
+                MXC_TFT_FillRect(&ideal_bottom, BLACK);
+                MXC_TFT_FillRect(&ideal_left, BLACK);
+                MXC_TFT_FillRect(&ideal_right, BLACK);
+                if(is_centered)
+                {
+                    MXC_TFT_FillCircle(120,140,3,GREEN);
+                }
+                else
+                {
+                    MXC_TFT_FillCircle(120,140,3,BLACK);
+                }
+                if(is_centered)
+                {
+                    set_state(MEASUREMENT);
+                }
+                break;
+            }
+            case MEASUREMENT:
+            {
+                printf("STATE: measurement\ntime left: %i\n",ssm.time_left());
+                cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
+                if(cnn_out->face_status == NO_FACE_PRESENT)
+                {
+                    set_state(SEARCH);
+                } 
+                
+                diff_x = cnn_out->x - ideal_top.x;
+                diff_y = cnn_out->y - ideal_top.y;
+                is_centered = 0;
+
+                printf("x: %i\t", diff_x);
+                if(diff_x < 15 && diff_x > -15)
+                {
+                    printf("GOOD     \n");
+                    is_centered = 1;
+                }
+                else
+                {
+                    is_centered = 0;
                     if(diff_x > 15)
                     {
                         printf("MOVE RIGHT\n");
@@ -188,11 +280,11 @@ void execute_ssm()
                 if(diff_y < 15 && diff_y > -15)
                 {
                     printf("GOOD      \n");
-                    is_good &= 1;
+                    is_centered &= 1;
                 }
                 else
                 {
-                    is_good = 0;
+                    is_centered = 0;
                     if(diff_y > 15)
                     {
                         printf("MOVE DOWN\n");
@@ -204,24 +296,22 @@ void execute_ssm()
                 }
                 // printf("w: %i\n",cnn_out->w - ideal_bottom.w);
                 // printf("h: %i\n",cnn_out->h - ideal_left.h);
-                printf("\033[0;0f");
 
                 MXC_TFT_FillRect(&ideal_top, BLACK);
                 MXC_TFT_FillRect(&ideal_bottom, BLACK);
                 MXC_TFT_FillRect(&ideal_left, BLACK);
                 MXC_TFT_FillRect(&ideal_right, BLACK);
-                if(is_good)
+                if(is_centered)
                 {
-                    MXC_TFT_FillCircle(120,180,3,GREEN);
+                    MXC_TFT_FillCircle(120,140,3,GREEN);
+                    tx_data();
                 }
                 else
                 {
-                    MXC_TFT_FillCircle(120,180,3,BLACK);
+                    set_state(POSITIONING);
+                    MXC_TFT_FillCircle(120,140,3,BLACK);
+                    printf("\033[0;0f");
                 }
-                break;
-            }
-            case MEASUREMENT:
-            {
                 break;
             }
             case RESET_STATE:

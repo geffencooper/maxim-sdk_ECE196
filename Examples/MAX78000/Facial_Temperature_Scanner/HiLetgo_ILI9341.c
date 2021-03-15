@@ -49,7 +49,8 @@ void init_ILI_LCD()
     printf("init LCD: %i\n", res);
     area_t a = {50,50,30,30};
     int8_t frame_buffer[10000];
-    //MXC_TFT_SetRotation(2);
+    MXC_TFT_SetRotation(ROTATE_180);
+    MXC_TFT_SetForeGroundColor(WHITE);
     MXC_TFT_ClearScreen();
 }
 

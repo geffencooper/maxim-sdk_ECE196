@@ -81,21 +81,24 @@ SRCS += PIR_sensor.c
 SRCS += cnn.c
 SRCS += softmax.c
 SRCS += cnn_helper_funcs.c
-SRCS += TFT/all_imgs.c
 SRCS += timer_funcs.c
 SRCS += IR_temp_sensor.c
+SRCS += tft_fthr/Arial12x12.c
+SRCS += tft_fthr/Arial24x23.c
+SRCS += tft_fthr/Arial28x28.c
+SRCS += tft_fthr/SansSerif16x16.c
+SRCS += tft_fthr/SansSerif19x19.c
 #SRCS += sla_header.c
 
 # Where to find source files for this test
 VPATH=.
 VPATH += $(CMSIS_ROOT)/Device/Maxim/$(TARGET_UC)/Source
 VPATH += Common/
-VPATH += ./TFT
+VPATH += ./tft_fthr
 
 # Where to find header files for this test
 IPATH = .
 IPATH += Common/
-IPATH += ./TFT
 # Enable assertion checking for development
 PROJ_CFLAGS+=-DMXC_ASSERT_ENABLE 
 
