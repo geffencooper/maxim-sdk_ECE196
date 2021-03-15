@@ -245,6 +245,7 @@ void TFT_Print(char *str, int x, int y, int font, int length)
   text.len = length;
 
   MXC_TFT_PrintFont(x, y, font, &text, NULL);
+  memset(str,32,length);
 }
 
 

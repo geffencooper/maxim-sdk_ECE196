@@ -28,13 +28,13 @@
 #define DISPLAY_FACE_STATUS 1 // option to display text to LCD ("Face Detected")
 #define FACE_PRESENT 0
 #define NO_FACE_PRESENT 1
-#define CENTER_X 80
-#define CENTER_Y 80
-#define LCD_TEXT_BUFF_SIZE
+#define LCD_TEXT_BUFF_SIZE 32
+#define STATE_TEXT_X 90
+#define STATE_TEXT_Y 10
+#define STATE_TEXT_W 200
+#define STATE_TEXT_H 20
+#define CENTERING_THRESHOLD 10
 
-// Globals
-
-char lcd_text_buff[LCD_TEXT_BUFF_SIZE];
 
 // This struct defines the scanner state machine
 // The only two members are the state and a function pointer to
@@ -45,10 +45,20 @@ typedef struct
     const uint8_t (*time_left) (void); // should not be changed
 } scanner_state_machine_t;
 
+typedef enum
+{
+    MOVING_LEFT = 0,
+    MOVING_RIGHT,
+    MOVING_DOWN,
+    MOVING_UP
+} positioning_state_t;
+
 
 // Global variables
 volatile scanner_state_machine_t ssm = {IDLE, get_state_time_left};
-
+char lcd_text_buff[LCD_TEXT_BUFF_SIZE]; // buffer to hold the text to display to the LCD
+area_t clear_state_text = {STATE_TEXT_X, STATE_TEXT_Y, STATE_TEXT_W, STATE_TEXT_H}; // a rectangle used to clear state text
+area_t clear_info_text = {0, 240, 240, 20}; // a rectangle used to clear info text
 
 // A private function for setting the state machine's state
 // It also starts the timer for a given state.
@@ -62,6 +72,31 @@ static void set_state(scan_state_t state)
     {
         reset_state_timer();
         start_state_timer();
+    }
+
+    // display state text to LCD, we only want to update the state text once
+    // when entering the state so we display it here
+    TFT_Print(lcd_text_buff, 10, STATE_TEXT_Y, (int)&SansSerif19x19[0], sprintf(lcd_text_buff, "STATE:"));
+    switch (state)
+    {
+        case SEARCH:
+        {  
+            MXC_TFT_FillRect(&clear_state_text, 4);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X, STATE_TEXT_Y, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "SEARCH"));
+            break;
+        }
+        case POSITIONING:
+        {
+            MXC_TFT_FillRect(&clear_state_text, 4);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X, STATE_TEXT_Y, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "POSITIONING"));
+            break;
+        }
+        case MEASUREMENT:
+        {
+            MXC_TFT_FillRect(&clear_state_text, 4);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X, STATE_TEXT_Y, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MEASUREMENT"));
+            break;
+        }
     }
 }
 
@@ -152,7 +187,10 @@ void execute_ssm()
     int diff_x = 0;
     int diff_y = 0;
     uint8_t is_centered = 0;
-
+    static uint8_t unstable_frame_count = 0;
+    static uint8_t unstable_x_count = 0;
+    static uint8_t unstable_y_count = 0;
+    positioning_state_t position;
     while(1)
     {
         switch (ssm.current_state)
@@ -163,69 +201,111 @@ void execute_ssm()
             }
             case SEARCH:
             {
-                printf("STATE: search\ntime left: %i\n",ssm.time_left());
-                TFT_Print(lcd_text_buff, 10, 10, (int)&SansSerif19x19[0], sprintf(lcd_text_buff, "STATE:"));
-                TFT_Print(lcd_text_buff, 90, 10, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "SEARCH"));
+                //printf("STATE: search\ntime left: %i\n",ssm.time_left());
+                
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, NULL);
                 if(cnn_out->face_status == FACE_PRESENT)
                 {
                     set_state(POSITIONING);
                 }
-                printf("\033[0;0f");
+               // printf("\033[0;0f");
                 break;
             }
             case POSITIONING:
             {
-                printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
+                // variables to determine if position stable in x and y directions
+                // first stabilize x then y
+                static uint8_t x_stable = 0;
+                static uint8_t y_stable = 0;
+                
+                //printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
+                // do a forward pass through the CNN and confirm a face is in the frame
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                 if(cnn_out->face_status == NO_FACE_PRESENT)
                 {
                     set_state(SEARCH);
                 } 
                 
+                // if a face is present determine how far away the face is from the center
                 diff_x = cnn_out->x - ideal_right.x;
                 diff_y = cnn_out->y - ideal_top.y;
                 is_centered = 0;
 
-                printf("x: %i\t", diff_x);
-                if(diff_x < 15 && diff_x > -15)
+                //printf("x: %i\t", diff_x);
+                // first check if x position stable
+                if(diff_x < CENTERING_THRESHOLD && diff_x > -CENTERING_THRESHOLD)
                 {
-                    printf("GOOD     \n");
+                   // printf("GOOD     \n");
+                    // set x is stable
                     is_centered = 1;
+                    x_stable = 1;
+                    unstable_x_count = 0;
                 }
                 else
                 {
-                    is_centered = 0;
-                    if(diff_x > 15)
+                    // if x is unstable, increment the count
+                    // only set to unstable if uncentered for multiple frames
+                    // this filters out the noise of x measurements
+                    unstable_x_count++;
+                    if(unstable_x_count >= 2)
                     {
-                        printf("MOVE LEFT\n");
+                        // reset the stabilization variables
+                        is_centered = 0;
+                        x_stable = 0;
+                        // try to restabilize by first moving left
+                        // only redisplay the text if not already moving left
+                        if(diff_x > CENTERING_THRESHOLD && position != MOVING_LEFT)
+                        {
+                            position = MOVING_LEFT;
+                            MXC_TFT_FillRect(&clear_info_text,BLACK);
+                            TFT_Print(lcd_text_buff, 10, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE LEFT"));
+                        }
+                        // try to restabilize by moving right
+                        // only redisplay the text if not already moving right
+                        else if(diff_x < -CENTERING_THRESHOLD && position != MOVING_RIGHT)
+                        {
+                            position = MOVING_RIGHT;
+                            MXC_TFT_FillRect(&clear_info_text,BLACK);
+                            TFT_Print(lcd_text_buff, 10, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE RIGHT"));
+                        }
+                    }
+                }
+                //printf("y: %i\t", diff_y);
+                // once x is stable then stabilize y
+                if(x_stable)
+                {
+                    if(diff_y < CENTERING_THRESHOLD && diff_y > -CENTERING_THRESHOLD && x_stable)
+                    {
+                        //printf("GOOD      \n");
+                        is_centered &= 1;
+                        y_stable = 1;
+                        unstable_y_count = 0;
                     }
                     else
                     {
-                        printf("MOVE RIGHT\n");
-                    }
-                }
-                printf("y: %i\t", diff_y);
-                if(diff_y < 15 && diff_y > -15)
-                {
-                    printf("GOOD      \n");
-                    is_centered &= 1;
-                }
-                else
-                {
-                    is_centered = 0;
-                    if(diff_y > 15)
-                    {
-                        printf("MOVE UP\n");
-                    }
-                    else
-                    {
-                        printf("MOVE DOWN\n");
+                        unstable_y_count++;
+                        if(unstable_y_count >= 2)
+                        {
+                            is_centered = 0;
+                            y_stable = 0;
+                            if(diff_y > CENTERING_THRESHOLD && position != MOVING_UP)
+                            {
+                                position = MOVING_UP;
+                                MXC_TFT_FillRect(&clear_info_text,BLACK);
+                                TFT_Print(lcd_text_buff, 10, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE UP"));
+                            }
+                            else if(diff_y < -CENTERING_THRESHOLD && position != MOVING_DOWN)
+                            {
+                                position = MOVING_DOWN;
+                                MXC_TFT_FillRect(&clear_info_text,BLACK);
+                                TFT_Print(lcd_text_buff, 10, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE DOWN"));
+                            }
+                        }
                     }
                 }
                 // printf("w: %i\n",cnn_out->w - ideal_bottom.w);
                 // printf("h: %i\n",cnn_out->h - ideal_left.h);
-                printf("\033[0;0f");
+                //printf("\033[0;0f");
 
                 MXC_TFT_FillRect(&ideal_top, BLACK);
                 MXC_TFT_FillRect(&ideal_bottom, BLACK);
@@ -247,52 +327,35 @@ void execute_ssm()
             }
             case MEASUREMENT:
             {
-                printf("STATE: measurement\ntime left: %i\n",ssm.time_left());
+               // printf("STATE: measurement\ntime left: %i\n",ssm.time_left());
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                 if(cnn_out->face_status == NO_FACE_PRESENT)
                 {
                     set_state(SEARCH);
                 } 
                 
-                diff_x = cnn_out->x - ideal_top.x;
+                diff_x = cnn_out->x - ideal_right.x;
                 diff_y = cnn_out->y - ideal_top.y;
-                is_centered = 0;
 
-                printf("x: %i\t", diff_x);
-                if(diff_x < 15 && diff_x > -15)
+                //printf("x: %i\t", diff_x);
+                if(diff_x < CENTERING_THRESHOLD && diff_x > -CENTERING_THRESHOLD)
                 {
-                    printf("GOOD     \n");
+                    //printf("GOOD     \n");
                     is_centered = 1;
                 }
                 else
                 {
                     is_centered = 0;
-                    if(diff_x > 15)
-                    {
-                        printf("MOVE RIGHT\n");
-                    }
-                    else
-                    {
-                        printf("MOVE LEFT\n");
-                    }
                 }
-                printf("y: %i\t", diff_y);
-                if(diff_y < 15 && diff_y > -15)
+               // printf("y: %i\t", diff_y);
+                if(diff_y < CENTERING_THRESHOLD && diff_y > -CENTERING_THRESHOLD)
                 {
-                    printf("GOOD      \n");
+                    //printf("GOOD      \n");
                     is_centered &= 1;
                 }
                 else
                 {
                     is_centered = 0;
-                    if(diff_y > 15)
-                    {
-                        printf("MOVE DOWN\n");
-                    }
-                    else
-                    {
-                        printf("MOVE UP\n");
-                    }
                 }
                 // printf("w: %i\n",cnn_out->w - ideal_bottom.w);
                 // printf("h: %i\n",cnn_out->h - ideal_left.h);
@@ -303,14 +366,19 @@ void execute_ssm()
                 MXC_TFT_FillRect(&ideal_right, BLACK);
                 if(is_centered)
                 {
+                    unstable_frame_count = 0;
                     MXC_TFT_FillCircle(120,140,3,GREEN);
-                    tx_data();
+                    TFT_Print(lcd_text_buff, 0, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "Temperature: %.1f", get_temp()));
                 }
                 else
                 {
-                    set_state(POSITIONING);
-                    MXC_TFT_FillCircle(120,140,3,BLACK);
-                    printf("\033[0;0f");
+                    unstable_frame_count++;
+                    if(unstable_frame_count >= 3)
+                    {
+                        set_state(POSITIONING);
+                       // printf("\033[0;0f");
+                        unstable_frame_count = 0;
+                    }
                 }
                 break;
             }

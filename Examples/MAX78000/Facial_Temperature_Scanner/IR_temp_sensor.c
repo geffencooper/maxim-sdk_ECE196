@@ -54,7 +54,7 @@ void init_IR_temp_sensor()
     i2c_transaction.callback = transaction_complete;
 }
 
-void tx_data()
+float get_temp()
 {
     tx_buffer[0] = 0x07;
     //printf("starting transaction\n");
@@ -70,17 +70,14 @@ void tx_data()
         float temp;
         bytes = (rx_buffer[1] << 8) | rx_buffer[0];
         temp = ((((float)bytes*0.02)-273.15)*9 / 5)+32;
-        printf("temp:%f\n", temp);
-        printf("\033[0;0f");
+        return temp;
+        //printf("temp:%f\n", temp);
+        //printf("\033[0;0f");
         // for(int i = 0; i < 3; i++)
         // {
         //     printf("%02X ", rx_buffer[i]);
         // }
         // printf("\n");
     }
-}
-
-void rx_data()
-{
-
+    return 0;
 }
