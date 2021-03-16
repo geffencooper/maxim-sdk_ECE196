@@ -65,6 +65,16 @@ int init_state_timer(int expiration_period, ssm_action_fn ssm_action)
     return 0;
 }
 
+void set_expiration_period(int expiration_period)
+{
+    timer_period = expiration_period;
+}
+
+int get_expiration_period()
+{
+    return timer_period;
+}
+
 int get_state_time_left()
 {
     return (timer_period - current_seconds_count);

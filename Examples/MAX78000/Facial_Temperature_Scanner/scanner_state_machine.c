@@ -29,9 +29,9 @@
 #define FACE_PRESENT 0
 #define NO_FACE_PRESENT 1
 #define LCD_TEXT_BUFF_SIZE 32
-#define STATE_TEXT_X 90
-#define STATE_TEXT_Y 10
-#define STATE_TEXT_W 200
+#define STATE_TEXT_X 0
+#define STATE_TEXT_Y 25
+#define STATE_TEXT_W 240
 #define STATE_TEXT_H 20
 #define CENTERING_THRESHOLD 10
 
@@ -58,8 +58,12 @@ typedef enum
 // Global variables
 volatile scanner_state_machine_t ssm = {IDLE, get_state_time_left};
 char lcd_text_buff[LCD_TEXT_BUFF_SIZE]; // buffer to hold the text to display to the LCD
-area_t clear_state_text = {STATE_TEXT_X, STATE_TEXT_Y, STATE_TEXT_W, STATE_TEXT_H}; // a rectangle used to clear state text
+area_t clear_state_text = {STATE_TEXT_X, STATE_TEXT_Y+10, STATE_TEXT_W, STATE_TEXT_H}; // a rectangle used to clear state text
+area_t clear_state_text2 = {STATE_TEXT_X, STATE_TEXT_Y-10, STATE_TEXT_W, STATE_TEXT_H}; // a rectangle used to clear state text
 area_t clear_info_text = {0, 240, 240, 20}; // a rectangle used to clear info text
+area_t timer_bar = {0,0,240,2};
+area_t clear_idle_text = {0,0,35,20};
+area_t clear_pos_text = {60,240, 50, 160};
 mxc_gpio_cfg_t pwr_switch_gpio;
 
 // A private function for setting the state machine's state
@@ -70,35 +74,54 @@ static void set_state(scan_state_t state)
     ssm.current_state = state;
 
     // start the timer for non-idle states
-    if(state != IDLE && state != RESET_STATE)
+    if(ssm.current_state != IDLE && ssm.current_state != RESET_STATE)
     {
         reset_state_timer();
         start_state_timer();
+        timer_bar.x = 0;
+        timer_bar.w = 240;
+        MXC_TFT_FillRect(&timer_bar, GREEN);
     }
 
     // display state text to LCD, we only want to update the state text once
     // when entering the state so we display it here
-    TFT_Print(lcd_text_buff, 10, STATE_TEXT_Y, (int)&SansSerif19x19[0], sprintf(lcd_text_buff, "STATE:"));
     switch (state)
     {
         case SEARCH:
         {  
             MXC_TFT_FillRect(&clear_state_text, 4);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X, STATE_TEXT_Y, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "SEARCH"));
+            MXC_TFT_FillRect(&clear_state_text2, 4);
+            MXC_TFT_SetForeGroundColor(YELLOW);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+47, STATE_TEXT_Y-10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "MOTION DETECTED!"));
+            MXC_TFT_SetForeGroundColor(WHITE);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+28, STATE_TEXT_Y+10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "SEARCHING FOR A FACE"));
+            set_expiration_period(5);
             break;
         }
         case POSITIONING:
         {
             MXC_TFT_FillRect(&clear_state_text, 4);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X, STATE_TEXT_Y, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "POSITIONING"));
+            MXC_TFT_FillRect(&clear_state_text2, 4);
+            MXC_TFT_SetForeGroundColor(YELLOW);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+55, STATE_TEXT_Y-10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "FACE DETECTED!"));
+            MXC_TFT_SetForeGroundColor(WHITE);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+45, STATE_TEXT_Y+10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "CENTER YOUR FACE"));
+            set_expiration_period(10);
             break;
         }
         case MEASUREMENT:
         {
             MXC_TFT_FillRect(&clear_state_text, 4);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X, STATE_TEXT_Y, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MEASUREMENT"));
+            MXC_TFT_FillRect(&clear_state_text2, 4);
+            MXC_TFT_SetForeGroundColor(YELLOW);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+55, STATE_TEXT_Y-10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "FACE CENTERED!"));
+            MXC_TFT_SetForeGroundColor(WHITE);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+25, STATE_TEXT_Y+10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "MEASURING TEMPERATURE"));
+            set_expiration_period(10);
             break;
         }
+        default :
+            break;
     }
 }
 
@@ -107,6 +130,7 @@ static void set_state(scan_state_t state)
 // It disables the motion interrupt, transitions states, and starts the CNN
 static void motion_sensor_trigger()
 {
+    MXC_TFT_ClearScreen();
     MXC_GPIO_DisableInt(MXC_GPIO2, MXC_GPIO_PIN_7);
     MXC_Delay(100000);
     MXC_GPIO_OutSet(MXC_GPIO2, MXC_GPIO_PIN_3);
@@ -182,7 +206,7 @@ int init_ssm()
     init_pwr_switch_gpio();
     MXC_GPIO_OutClr(MXC_GPIO2, MXC_GPIO_PIN_3);
     init_PIR_sensor(motion_sensor_trigger);
-    ret = init_state_timer(50, state_expired);
+    ret = init_state_timer(7, state_expired);
     if(ret < 0)
     {
         return -1;
@@ -221,12 +245,55 @@ void execute_ssm()
         {
             case IDLE: 
             {
+                static uint32_t count = 0;
+                if(count == 100000)
+                {
+                    count = 0;
+                    static int x_dir = 1;
+                    static int y_dir = 1;
+                    static int idle_x = 0;
+                    static int idle_y = 0;
+                    MXC_TFT_FillRect(&clear_idle_text, BLACK);
+                    TFT_Print(lcd_text_buff, idle_x, idle_y, (int)&Arial12x12[0], sprintf(lcd_text_buff, "IDLE"));
+                    clear_idle_text.x = idle_x;
+                    clear_idle_text.y = idle_y;
+                    idle_x+=x_dir;
+                    idle_y+=y_dir;
+                    if(idle_x+40 > 240)
+                    {
+                        x_dir = -1;
+                        idle_x+=x_dir;
+                        MXC_TFT_SetForeGroundColor(YELLOW);
+                    }
+                    if(idle_y + 20 > 320)
+                    {
+                        y_dir = -1;
+                        idle_y+=y_dir;
+                        MXC_TFT_SetForeGroundColor(RED);
+                    }
+                    if(idle_x < 0)
+                    {
+                        x_dir = 1;
+                        idle_x+=x_dir;
+                        MXC_TFT_SetForeGroundColor(GREEN);
+                    }
+                    if(idle_y < 0)
+                    {
+                        y_dir = 1;
+                        idle_y+=y_dir;
+                        MXC_TFT_SetForeGroundColor(WHITE);
+                    }
+                }
+                count++;
                 break;
             }
             case SEARCH:
             {
-                //printf("STATE: search\ntime left: %i\n",ssm.time_left());
-                
+                MXC_TFT_FillRect(&clear_pos_text, BLACK);
+                printf("STATE: search\ntime left: %i\n",ssm.time_left());
+                timer_bar.x = ((240/get_expiration_period())*ssm.time_left());
+                timer_bar.w = (240/get_expiration_period());
+                MXC_TFT_FillRect(&timer_bar, BLACK);
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, NULL);
                 if(cnn_out->face_status == FACE_PRESENT)
                 {
@@ -237,12 +304,15 @@ void execute_ssm()
             }
             case POSITIONING:
             {
+                timer_bar.x = ((240/get_expiration_period())*ssm.time_left());
+                timer_bar.w = (240/get_expiration_period());
+                MXC_TFT_FillRect(&timer_bar, BLACK);
                 // variables to determine if position stable in x and y directions
                 // first stabilize x then y
                 static uint8_t x_stable = 0;
                 static uint8_t y_stable = 0;
                 
-                //printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
+                printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
                 // do a forward pass through the CNN and confirm a face is in the frame
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                 if(cnn_out->face_status == NO_FACE_PRESENT)
@@ -284,7 +354,7 @@ void execute_ssm()
                         {
                             position = MOVING_LEFT;
                             MXC_TFT_FillRect(&clear_info_text,BLACK);
-                            TFT_Print(lcd_text_buff, 10, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE LEFT"));
+                            TFT_Print(lcd_text_buff, 60, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE LEFT"));
                         }
                         // try to restabilize by moving right
                         // only redisplay the text if not already moving right
@@ -292,7 +362,7 @@ void execute_ssm()
                         {
                             position = MOVING_RIGHT;
                             MXC_TFT_FillRect(&clear_info_text,BLACK);
-                            TFT_Print(lcd_text_buff, 10, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE RIGHT"));
+                            TFT_Print(lcd_text_buff, 60, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE RIGHT"));
                         }
                     }
                 }
@@ -318,13 +388,13 @@ void execute_ssm()
                             {
                                 position = MOVING_UP;
                                 MXC_TFT_FillRect(&clear_info_text,BLACK);
-                                TFT_Print(lcd_text_buff, 10, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE UP"));
+                                TFT_Print(lcd_text_buff, 60, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE UP"));
                             }
                             else if(diff_y < -CENTERING_THRESHOLD && position != MOVING_DOWN)
                             {
                                 position = MOVING_DOWN;
                                 MXC_TFT_FillRect(&clear_info_text,BLACK);
-                                TFT_Print(lcd_text_buff, 10, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE DOWN"));
+                                TFT_Print(lcd_text_buff, 60, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "MOVE DOWN"));
                             }
                         }
                     }
@@ -354,7 +424,7 @@ void execute_ssm()
             case MEASUREMENT:
             {
                 position = CENTERED;
-               // printf("STATE: measurement\ntime left: %i\n",ssm.time_left());
+                printf("STATE: measurement\ntime left: %i\n",ssm.time_left());
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                 if(cnn_out->face_status == NO_FACE_PRESENT)
                 {
@@ -426,8 +496,9 @@ void execute_ssm()
                             temps[i]*(boxes[i]-(float)running_avg_iir) \
                             + temps[i-1]*((float)running_avg_iir-boxes[i-1])) \
                             /(boxes[i]-boxes[i-1]);
-                        TFT_Print(lcd_text_buff, 0, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "Temp: %.1f-->%i  ", get_temp()*factor, running_avg_iir));
+                        TFT_Print(lcd_text_buff, 0, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "Temp: %.1f-->%i  ", get_temp()/**factor*/, running_avg_iir));
                         frame_count = 0;
+                        //temp_result(temp_value);
                     }
                 }
                 else

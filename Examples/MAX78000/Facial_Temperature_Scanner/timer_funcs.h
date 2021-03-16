@@ -25,6 +25,29 @@ int init_state_timer(int expiration_period, ssm_action_fn ssm_action);
 
 
 /*
+    Description: This function is used to change the expiration period
+                 for the timer. This can be used to set different
+                 periods for different states.
+
+    Parameters: The expiration period in seconds (ex: 5 means an interrupt
+                is generated after 5 seconds).
+
+    Return: none
+*/
+void set_expiration_period(int expiration_period);
+
+
+/*
+    Description: This function returns the current timer expiration period in seconds
+
+    Parameters: none
+
+    Return: the current timer expiration period in second
+*/
+int get_expiration_period();
+
+
+/*
     Description: This function can be used to get the amount of time
                  left in seconds before the state expires.
 
