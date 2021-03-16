@@ -63,7 +63,7 @@ area_t clear_state_text2 = {STATE_TEXT_X, STATE_TEXT_Y-10, STATE_TEXT_W, STATE_T
 area_t clear_info_text = {0, 240, 240, 20}; // a rectangle used to clear info text
 area_t timer_bar = {0,0,240,2};
 area_t clear_idle_text = {0,0,35,20};
-area_t clear_pos_text = {60,240, 50, 160};
+area_t clear_pos_text = {60,240, 130, 30};
 mxc_gpio_cfg_t pwr_switch_gpio;
 
 // A private function for setting the state machine's state
@@ -80,7 +80,7 @@ static void set_state(scan_state_t state)
         start_state_timer();
         timer_bar.x = 0;
         timer_bar.w = 240;
-        MXC_TFT_FillRect(&timer_bar, GREEN);
+        MXC_TFT_FillRect(&timer_bar, WHITE);
     }
 
     // display state text to LCD, we only want to update the state text once
@@ -102,22 +102,22 @@ static void set_state(scan_state_t state)
         {
             MXC_TFT_FillRect(&clear_state_text, 4);
             MXC_TFT_FillRect(&clear_state_text2, 4);
-            MXC_TFT_SetForeGroundColor(YELLOW);
+            MXC_TFT_SetForeGroundColor(ORANGE);
             TFT_Print(lcd_text_buff, STATE_TEXT_X+55, STATE_TEXT_Y-10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "FACE DETECTED!"));
             MXC_TFT_SetForeGroundColor(WHITE);
             TFT_Print(lcd_text_buff, STATE_TEXT_X+45, STATE_TEXT_Y+10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "CENTER YOUR FACE"));
-            set_expiration_period(10);
+            set_expiration_period(7);
             break;
         }
         case MEASUREMENT:
         {
             MXC_TFT_FillRect(&clear_state_text, 4);
             MXC_TFT_FillRect(&clear_state_text2, 4);
-            MXC_TFT_SetForeGroundColor(YELLOW);
+            MXC_TFT_SetForeGroundColor(GREEN);
             TFT_Print(lcd_text_buff, STATE_TEXT_X+55, STATE_TEXT_Y-10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "FACE CENTERED!"));
             MXC_TFT_SetForeGroundColor(WHITE);
             TFT_Print(lcd_text_buff, STATE_TEXT_X+25, STATE_TEXT_Y+10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "MEASURING TEMPERATURE"));
-            set_expiration_period(10);
+            set_expiration_period(8);
             break;
         }
         default :
@@ -130,7 +130,6 @@ static void set_state(scan_state_t state)
 // It disables the motion interrupt, transitions states, and starts the CNN
 static void motion_sensor_trigger()
 {
-    MXC_TFT_ClearScreen();
     MXC_GPIO_DisableInt(MXC_GPIO2, MXC_GPIO_PIN_7);
     MXC_Delay(100000);
     MXC_GPIO_OutSet(MXC_GPIO2, MXC_GPIO_PIN_3);
@@ -219,6 +218,25 @@ int init_ssm()
     return 0;
 }
 
+static void display_temperature(float temp)
+{
+    MXC_TFT_SetForeGroundColor(BLACK);
+    if(temp < 99.5)
+    {
+        MXC_TFT_SetBackGroundColor(GREEN);
+        TFT_Print(lcd_text_buff, 60, 150, (int)&Arial28x28[0], sprintf(lcd_text_buff, "%3.2f F",temp));
+        TFT_Print(lcd_text_buff, 142, 150, (int)&Arial12x12[0], sprintf(lcd_text_buff, "o"));
+        TFT_Print(lcd_text_buff, 75, 180, (int)&Arial28x28[0], sprintf(lcd_text_buff, "SAFE!"));
+    }
+    else
+    {
+        MXC_TFT_SetBackGroundColor(RED);
+        TFT_Print(lcd_text_buff, 60, 150, (int)&Arial28x28[0], sprintf(lcd_text_buff, "%3.2f F",temp));
+        TFT_Print(lcd_text_buff, 142, 150, (int)&Arial12x12[0], sprintf(lcd_text_buff, "o"));
+        TFT_Print(lcd_text_buff, 40, 180, (int)&Arial28x28[0], sprintf(lcd_text_buff, "NOT SAFE!"));
+    }
+}
+
 
 // This is the main control loop
 void execute_ssm()
@@ -239,6 +257,7 @@ void execute_ssm()
     positioning_state_t position;
     float boxes[5] = {80, 100, 110, 120, 130}; 
     float temps[5] = {1.2564, 1.2099, 1.1264, 1.0652, 1.0316};
+    static uint8_t temp_taken = 0;
     while(1)
     {
         switch (ssm.current_state)
@@ -289,6 +308,7 @@ void execute_ssm()
             }
             case SEARCH:
             {
+                MXC_TFT_FillRect(&clear_idle_text, BLACK);
                 MXC_TFT_FillRect(&clear_pos_text, BLACK);
                 printf("STATE: search\ntime left: %i\n",ssm.time_left());
                 timer_bar.x = ((240/get_expiration_period())*ssm.time_left());
@@ -299,7 +319,6 @@ void execute_ssm()
                 {
                     set_state(POSITIONING);
                 }
-               // printf("\033[0;0f");
                 break;
             }
             case POSITIONING:
@@ -321,17 +340,13 @@ void execute_ssm()
                 } 
                 
                 // if a face is present determine how far away the face is from the center
-                // diff_x = cnn_out->x - ideal_right.x;
-                // diff_y = cnn_out->y - ideal_top.y;
                 diff_x = cnn_out->x-(cnn_out->w)/2 - ideal_center_x;
                 diff_y = cnn_out->y+(cnn_out->h)/2 - ideal_center_y;
                 is_centered = 0;
 
-                //printf("x: %i\t", diff_x);
                 // first check if x position stable
                 if(diff_x < CENTERING_THRESHOLD && diff_x > -CENTERING_THRESHOLD)
                 {
-                   // printf("GOOD     \n");
                     // set x is stable
                     is_centered = 1;
                     x_stable = 1;
@@ -366,13 +381,11 @@ void execute_ssm()
                         }
                     }
                 }
-                //printf("y: %i\t", diff_y);
                 // once x is stable then stabilize y
                 if(x_stable)
                 {
                     if(diff_y < CENTERING_THRESHOLD && diff_y > -CENTERING_THRESHOLD && x_stable)
                     {
-                        //printf("GOOD      \n");
                         is_centered &= 1;
                         y_stable = 1;
                         unstable_y_count = 0;
@@ -399,9 +412,6 @@ void execute_ssm()
                         }
                     }
                 }
-                // printf("w: %i\n",cnn_out->w - ideal_bottom.w);
-                // printf("h: %i\n",cnn_out->h - ideal_left.h);
-                //printf("\033[0;0f");
 
                 MXC_TFT_FillRect(&ideal_top, BLACK);
                 MXC_TFT_FillRect(&ideal_bottom, BLACK);
@@ -423,92 +433,95 @@ void execute_ssm()
             }
             case MEASUREMENT:
             {
-                position = CENTERED;
-                printf("STATE: measurement\ntime left: %i\n",ssm.time_left());
-                cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
-                if(cnn_out->face_status == NO_FACE_PRESENT)
+                if(!temp_taken)
                 {
-                    set_state(SEARCH);
-                } 
-                
-                // diff_x = cnn_out->x - ideal_right.x;
-                // diff_y = cnn_out->y - ideal_top.y;
-                diff_x = cnn_out->x-(cnn_out->w)/2 - ideal_center_x;
-                diff_y = cnn_out->y+(cnn_out->h)/2 - ideal_center_y;
-
-                //printf("x: %i\t", diff_x);
-                if(diff_x < CENTERING_THRESHOLD && diff_x > -CENTERING_THRESHOLD)
-                {
-                    //printf("GOOD     \n");
-                    is_centered = 1;
-                }
-                else
-                {
-                    is_centered = 0;
-                }
-               // printf("y: %i\t", diff_y);
-                if(diff_y < CENTERING_THRESHOLD && diff_y > -CENTERING_THRESHOLD)
-                {
-                    //printf("GOOD      \n");
-                    is_centered &= 1;
-                }
-                else
-                {
-                    is_centered = 0;
-                }
-                // printf("w: %i\n",cnn_out->w - ideal_bottom.w);
-                // printf("h: %i\n",cnn_out->h - ideal_left.h);
-
-                MXC_TFT_FillRect(&ideal_top, BLACK);
-                MXC_TFT_FillRect(&ideal_bottom, BLACK);
-                MXC_TFT_FillRect(&ideal_left, BLACK);
-                MXC_TFT_FillRect(&ideal_right, BLACK);
-                if(is_centered)
-                {
-                    static int frame_count = 0;
-                    static int last_area = 0;
-                    static int current_area = 0;
-                    static int running_avg_iir = 0;
-                    current_area = (cnn_out->w * cnn_out->h)/100;
-                    if(last_area > 0)
+                    timer_bar.x = ((240/3)*(ssm.time_left()-5));
+                    timer_bar.w = (240/3);
+                    MXC_TFT_FillRect(&timer_bar, BLACK);
+                    position = CENTERED;
+                    printf("STATE: measurement\ntime left: %i\n",ssm.time_left());
+                    cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
+                    if(cnn_out->face_status == NO_FACE_PRESENT)
                     {
-                        running_avg_iir = current_area/10 + (9*last_area)/10; // y[n] = alpha*x[n] + (1-alpha)*y[n-1]
-                        last_area = running_avg_iir;
+                        set_state(SEARCH);
+                    } 
+                    
+                    diff_x = cnn_out->x-(cnn_out->w)/2 - ideal_center_x;
+                    diff_y = cnn_out->y+(cnn_out->h)/2 - ideal_center_y;
+
+                    if(diff_x < CENTERING_THRESHOLD && diff_x > -CENTERING_THRESHOLD)
+                    {
+                        is_centered = 1;
                     }
                     else
                     {
-                        last_area = current_area;
+                        is_centered = 0;
                     }
-                    frame_count++;
-                    unstable_frame_count = 0;
-                    MXC_TFT_FillCircle(120,140,3,GREEN);
-                    if(frame_count == 5)
+                    if(diff_y < CENTERING_THRESHOLD && diff_y > -CENTERING_THRESHOLD)
                     {
-                        int i;
-                        for(i = 0; i < 5; i++)
+                        is_centered &= 1;
+                    }
+                    else
+                    {
+                        is_centered = 0;
+                    }
+
+                    MXC_TFT_FillRect(&ideal_top, BLACK);
+                    MXC_TFT_FillRect(&ideal_bottom, BLACK);
+                    MXC_TFT_FillRect(&ideal_left, BLACK);
+                    MXC_TFT_FillRect(&ideal_right, BLACK);
+                    if(is_centered)
+                    {
+                        static int frame_count = 0;
+                        static int last_area = 0;
+                        static int current_area = 0;
+                        static int running_avg_iir = 0;
+                        current_area = (cnn_out->w * cnn_out->h)/100;
+                        if(last_area > 0)
                         {
-                            if(boxes[i] > running_avg_iir)
+                            running_avg_iir = current_area/10 + (9*last_area)/10; // y[n] = alpha*x[n] + (1-alpha)*y[n-1]
+                            last_area = running_avg_iir;
+                        }
+                        else
+                        {
+                            last_area = current_area;
+                        }
+                        frame_count++;
+                        unstable_frame_count = 0;
+                        MXC_TFT_FillCircle(120,140,3,GREEN);
+                        MXC_TFT_FillRect(&clear_pos_text, BLACK);
+                        TFT_Print(lcd_text_buff, 60, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "HOLD STILL! %i", ssm.time_left()-5));
+                        if(frame_count == 5)
+                        {
+                            int i;
+                            for(i = 0; i < 5; i++)
                             {
-                                break;
+                                if(boxes[i] > running_avg_iir)
+                                {
+                                    break;
+                                }
+                            }
+                            float factor = (
+                                temps[i]*(boxes[i]-(float)running_avg_iir) \
+                                + temps[i-1]*((float)running_avg_iir-boxes[i-1])) \
+                                /(boxes[i]-boxes[i-1]);
+                            TFT_Print(lcd_text_buff, 0, 270, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "Temp: %.1f-->%i  ", get_temp()*factor, running_avg_iir));
+                            frame_count = 0;
+                            if(ssm.time_left() < 6)
+                            {
+                                temp_taken = 1;
+                                display_temperature(get_temp()*factor);
                             }
                         }
-                        float factor = (
-                            temps[i]*(boxes[i]-(float)running_avg_iir) \
-                            + temps[i-1]*((float)running_avg_iir-boxes[i-1])) \
-                            /(boxes[i]-boxes[i-1]);
-                        TFT_Print(lcd_text_buff, 0, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "Temp: %.1f-->%i  ", get_temp()/**factor*/, running_avg_iir));
-                        frame_count = 0;
-                        //temp_result(temp_value);
                     }
-                }
-                else
-                {
-                    unstable_frame_count++;
-                    if(unstable_frame_count >= 3)
+                    else
                     {
-                        set_state(POSITIONING);
-                       // printf("\033[0;0f");
-                        unstable_frame_count = 0;
+                        unstable_frame_count++;
+                        if(unstable_frame_count >= 3)
+                        {
+                            set_state(POSITIONING);
+                            unstable_frame_count = 0;
+                        }
                     }
                 }
                 break;
@@ -517,6 +530,8 @@ void execute_ssm()
             {
                 reset_ssm();
                 set_state(IDLE);
+                temp_taken = 0;
+                MXC_TFT_SetBackGroundColor(BLACK);
                 break;
             }
             default:
