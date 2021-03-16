@@ -96,8 +96,8 @@ uint8_t unstable_y_count = 0;
 positioning_state_t position;
 
 // 'Look up table' for interpolating the temperature scale factor
-float boxes[5] = {70, 80, 100, 110, 120, 130}; 
-float temps[5] = {1.3019,1.2564, 1.2099, 1.1264, 1.0652, 1.0316};
+float boxes[10] = {40, 50, 60, 70, 75, 85, 95, 100, 105, 120}; 
+float temps[10] = {1.3798,1.3243, 1.3066, 1.2695, 1.2505, 1.2098, 1.1264,1.1136,1.0652,1.0432};
 static uint8_t temp_taken = 0;
 
 
@@ -337,6 +337,7 @@ static void display_temperature(float temp)
 // This is the main control loop
 void execute_ssm()
 {
+    static uint8_t was_idle = 1;
     while(1)
     {
         switch (ssm.current_state)
@@ -345,6 +346,7 @@ void execute_ssm()
             case IDLE: 
             {
                 static uint32_t count = 0;
+                was_idle = 1;
                 if(count == IDLE_TEXT_PERIOD)
                 {
                     count = 0;
@@ -398,9 +400,14 @@ void execute_ssm()
             // the search state looks for a face
             case SEARCH:
             {
-                // clear the idle text
-                MXC_TFT_FillRect(&clear_idle_text, BLACK);
-                MXC_TFT_FillRect(&clear_pos_text, BLACK);
+                if(was_idle)
+                {
+                    // clear the idle text
+                    MXC_TFT_FillRect(&clear_idle_text, BLACK);
+                    MXC_TFT_FillRect(&clear_pos_text, BLACK);
+                    was_idle = 0;
+                }
+                MXC_TFT_FillRect(&clear_info_text,BLACK);
 
                 // update the timer countdown bar
                 timer_bar.x = ((LCD_W/get_expiration_period())*ssm.time_left());
@@ -624,7 +631,7 @@ void execute_ssm()
                         {
                             // find the closest box area in the 'look up table'
                             int i;
-                            for(i = 0; i < 5; i++)
+                            for(i = 0; i < 10; i++)
                             {
                                 if(boxes[i] > running_avg_iir)
                                 {
@@ -639,7 +646,7 @@ void execute_ssm()
                                 /(boxes[i]-boxes[i-1]);
 
                             // display the estimated temperature
-                            TFT_Print(lcd_text_buff, 0, 270, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "Temp: %.1f-->%i  ", get_temp()*factor, running_avg_iir));
+                            //TFT_Print(lcd_text_buff, 0, 270, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "Temp: %.1f-->%i  ", get_temp()*factor, running_avg_iir));
                             frame_count = 0; // reset the frame count
 
                             // a stable temperature has been recorded so move on to the display page
