@@ -22,18 +22,12 @@
 #include "cnn_helper_funcs.h"
 #include "timer_funcs.h"
 #include "IR_temp_sensor.h"
+#include "scanner_state_machine_constants.h"
 
-// Macros
-#define DISPLAY_BB 1 // option to display bounding box to LCD
-#define DISPLAY_FACE_STATUS 1 // option to display text to LCD ("Face Detected")
-#define FACE_PRESENT 0
-#define NO_FACE_PRESENT 1
-#define LCD_TEXT_BUFF_SIZE 32
-#define STATE_TEXT_X 0
-#define STATE_TEXT_Y 25
-#define STATE_TEXT_W 240
-#define STATE_TEXT_H 20
-#define CENTERING_THRESHOLD 10
+
+// ========================================================================================= //
+// ================================== TYPE DEFINITIONS ===================================== //
+// ========================================================================================= //
 
 
 // This struct defines the scanner state machine
@@ -55,16 +49,61 @@ typedef enum
 } positioning_state_t;
 
 
-// Global variables
+// ========================================================================================= //
+// ================================== GLOBAL VARIABLES ===================================== //
+// ========================================================================================= //
+
+// the single instance of the scanner state machine
 volatile scanner_state_machine_t ssm = {IDLE, get_state_time_left};
 char lcd_text_buff[LCD_TEXT_BUFF_SIZE]; // buffer to hold the text to display to the LCD
-area_t clear_state_text = {STATE_TEXT_X, STATE_TEXT_Y+10, STATE_TEXT_W, STATE_TEXT_H}; // a rectangle used to clear state text
-area_t clear_state_text2 = {STATE_TEXT_X, STATE_TEXT_Y-10, STATE_TEXT_W, STATE_TEXT_H}; // a rectangle used to clear state text
-area_t clear_info_text = {0, 240, 240, 20}; // a rectangle used to clear info text
-area_t timer_bar = {0,0,240,2};
-area_t clear_idle_text = {0,0,35,20};
-area_t clear_pos_text = {60,240, 130, 30};
+
+// rectangle structs for clearing text from the screen
+area_t clear_state_text = {STATE_TEXT_X, STATE_TEXT_Y, STATE_TEXT_W, STATE_TEXT_H}; // displays state
+area_t clear_state_text_desc = {STATE_TEXT_DESC_X, STATE_TEXT_DESC_Y, STATE_TEXT_DESC_W, STATE_TEXT_DESC_H}; // displays state description
+area_t clear_info_text = {0, LCD_W, LCD_W, INFO_TEXT_H}; // a rectangle used to clear info text
+area_t clear_idle_text = {0,0,IDLE_TEXT_W,IDLE_TEXT_H};
+area_t clear_pos_text = {POS_TEXT_X,POS_TEXT_Y, POS_TEXT_W, POS_TEXT_H};
+
+// time bar at the top of the screen the counts down as a state expires
+area_t timer_bar = {0,0,LCD_W,TIME_BAR_H};
+
 mxc_gpio_cfg_t pwr_switch_gpio;
+
+// return value of CNN (bounding box values and face state)
+cnn_output_t* cnn_out;
+
+// rectangle the user needs to center their face in
+area_t ideal_top = {IDEAL_X, IDEAL_Y, IDEAL_W, IDEAL_BB_LINE_W};
+area_t ideal_left = {IDEAL_X, IDEAL_Y, IDEAL_BB_LINE_W, IDEAL_H};
+area_t ideal_bottom = {IDEAL_X, IDEAL_Y+IDEAL_H, IDEAL_W, IDEAL_BB_LINE_W};
+area_t ideal_right = {IDEAL_X+IDEAL_W, IDEAL_Y, IDEAL_BB_LINE_W, IDEAL_H};
+
+// reference point for centering the bounding box   
+int ideal_center_x = IDEAL_X + IDEAL_W/2;
+int ideal_center_y = IDEAL_Y + IDEAL_H/2;
+int diff_x = 0;
+int diff_y = 0;
+
+uint8_t is_centered = 0;
+
+// to filter out noisy bounding box data, the user must be
+// out of the center for multiple frames if they were centered
+uint8_t unstable_frame_count = 0;
+uint8_t unstable_x_count = 0;
+uint8_t unstable_y_count = 0;
+
+// keeps track of which position to stablize
+positioning_state_t position;
+
+// 'Look up table' for interpolating the temperature scale factor
+float boxes[5] = {70, 80, 100, 110, 120, 130}; 
+float temps[5] = {1.3019,1.2564, 1.2099, 1.1264, 1.0652, 1.0316};
+static uint8_t temp_taken = 0;
+
+
+// ========================================================================================= //
+// ================================ FUNCTION DEFINITIONS =================================== //
+// ========================================================================================= //
 
 // A private function for setting the state machine's state
 // It also starts the timer for a given state.
@@ -78,8 +117,10 @@ static void set_state(scan_state_t state)
     {
         reset_state_timer();
         start_state_timer();
+
+        // reset the countdown timer bar to full
         timer_bar.x = 0;
-        timer_bar.w = 240;
+        timer_bar.w = LCD_W;
         MXC_TFT_FillRect(&timer_bar, WHITE);
     }
 
@@ -89,35 +130,53 @@ static void set_state(scan_state_t state)
     {
         case SEARCH:
         {  
-            MXC_TFT_FillRect(&clear_state_text, 4);
-            MXC_TFT_FillRect(&clear_state_text2, 4);
+            // clear the state text
+            MXC_TFT_FillRect(&clear_state_text, BLACK);
+            MXC_TFT_FillRect(&clear_state_text_desc, BLACK);
+
+            // display state description
             MXC_TFT_SetForeGroundColor(YELLOW);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X+47, STATE_TEXT_Y-10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "MOTION DETECTED!"));
+            TFT_Print(lcd_text_buff, STATE_TEXT_DESC_X+47, STATE_TEXT_DESC_Y, (int)&Arial12x12[0], sprintf(lcd_text_buff, "MOTION DETECTED!"));
+            
+            // display state 
             MXC_TFT_SetForeGroundColor(WHITE);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X+28, STATE_TEXT_Y+10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "SEARCHING FOR A FACE"));
-            set_expiration_period(5);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+28, STATE_TEXT_Y, (int)&Arial12x12[0], sprintf(lcd_text_buff, "SEARCHING FOR A FACE"));
+            
+            set_expiration_period(SEARCH_PERIOD);
             break;
         }
         case POSITIONING:
         {
-            MXC_TFT_FillRect(&clear_state_text, 4);
-            MXC_TFT_FillRect(&clear_state_text2, 4);
+            // clear the text
+            MXC_TFT_FillRect(&clear_state_text, BLACK);
+            MXC_TFT_FillRect(&clear_state_text_desc, BLACK);
+           
+            // display state description
             MXC_TFT_SetForeGroundColor(ORANGE);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X+55, STATE_TEXT_Y-10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "FACE DETECTED!"));
+            TFT_Print(lcd_text_buff, STATE_TEXT_DESC_X+55, STATE_TEXT_DESC_Y, (int)&Arial12x12[0], sprintf(lcd_text_buff, "FACE DETECTED!"));
+           
+            // display the state
             MXC_TFT_SetForeGroundColor(WHITE);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X+45, STATE_TEXT_Y+10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "CENTER YOUR FACE"));
-            set_expiration_period(7);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+45, STATE_TEXT_Y, (int)&Arial12x12[0], sprintf(lcd_text_buff, "CENTER YOUR FACE"));
+            
+            set_expiration_period(POSITIONING_PERIOD);
             break;
         }
         case MEASUREMENT:
         {
-            MXC_TFT_FillRect(&clear_state_text, 4);
-            MXC_TFT_FillRect(&clear_state_text2, 4);
+            // clear the text
+            MXC_TFT_FillRect(&clear_state_text, BLACK);
+            MXC_TFT_FillRect(&clear_state_text_desc, BLACK);
+           
+            // display state description
             MXC_TFT_SetForeGroundColor(GREEN);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X+55, STATE_TEXT_Y-10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "FACE CENTERED!"));
+            TFT_Print(lcd_text_buff, STATE_TEXT_DESC_X+55, STATE_TEXT_DESC_Y, (int)&Arial12x12[0], sprintf(lcd_text_buff, "FACE CENTERED!"));
+           
+            // display the state
             MXC_TFT_SetForeGroundColor(WHITE);
-            TFT_Print(lcd_text_buff, STATE_TEXT_X+25, STATE_TEXT_Y+10, (int)&Arial12x12[0], sprintf(lcd_text_buff, "MEASURING TEMPERATURE"));
-            set_expiration_period(8);
+            TFT_Print(lcd_text_buff, STATE_TEXT_X+25, STATE_TEXT_Y, (int)&Arial12x12[0], sprintf(lcd_text_buff, "MEASURING TEMPERATURE"));
+            
+            set_expiration_period(MEASUREMENT_PERIOD);
             break;
         }
         default :
@@ -126,27 +185,39 @@ static void set_state(scan_state_t state)
 }
 
 
+// ========================================================================================= //
+
+
 // This is the ssm_action_fn for the motion sensor.
 // It disables the motion interrupt, transitions states, and starts the CNN
 static void motion_sensor_trigger()
 {
     MXC_GPIO_DisableInt(MXC_GPIO2, MXC_GPIO_PIN_7);
-    MXC_Delay(100000);
+    MXC_Delay(100000); // time for LED to flash before depowering sensor
     MXC_GPIO_OutSet(MXC_GPIO2, MXC_GPIO_PIN_3);
     set_state(SEARCH);
     startup_cnn();
 }
+
+
+// ========================================================================================= //
+
 
 // This function is called after one 'cycle' of the state machine
 // completes or a state expires
 static void reset_ssm()
 {
     reset_state_timer();
+
+    // power on the motion sensor and its interrupt
     MXC_GPIO_OutClr(MXC_GPIO2, MXC_GPIO_PIN_3);
     MXC_Delay(100000);
     MXC_GPIO_EnableInt(MXC_GPIO2, MXC_GPIO_PIN_7);
     MXC_TFT_ClearScreen();
 }
+
+
+// ========================================================================================= //
 
 
 // This is the ssm_action_fn for the timer expiration
@@ -157,12 +228,18 @@ static void state_expired()
 }
 
 
+// ========================================================================================= //
+
+
 // This is the ssm_action_fn for the IR sensor
 // MEASUREMENT is the last state so it should reset after
 static void measurement_complete()
 {
     set_state(RESET_STATE);
 }
+
+
+// ========================================================================================= //
 
 
 // This function initializes system parameters
@@ -177,6 +254,9 @@ static void init_system()
 }
 
 
+// ========================================================================================= //
+
+
 // initializes a gpio which controls power to motion sensor
 static void init_pwr_switch_gpio()
 {
@@ -187,6 +267,9 @@ static void init_pwr_switch_gpio()
     MXC_GPIO_Config(&pwr_switch_gpio);
     MXC_GPIO_OutClr(MXC_GPIO2, MXC_GPIO_PIN_3);
 }
+
+
+// ========================================================================================= //
 
 
 // this function initializes peripherals used by the state machine
@@ -201,15 +284,20 @@ int init_ssm()
     {
         return -1;
     }
+
     init_ILI_LCD();
+
     init_pwr_switch_gpio();
     MXC_GPIO_OutClr(MXC_GPIO2, MXC_GPIO_PIN_3);
+
     init_PIR_sensor(motion_sensor_trigger);
-    ret = init_state_timer(7, state_expired);
+
+    ret = init_state_timer(SEARCH_PERIOD, state_expired);
     if(ret < 0)
     {
         return -1;
     }
+
     init_IR_temp_sensor();
 
     printf("Scanner Initialized Successfully\n");
@@ -218,10 +306,15 @@ int init_ssm()
     return 0;
 }
 
+
+// ========================================================================================= //
+
+
+// displays a new screen when temperature recorded
 static void display_temperature(float temp)
 {
     MXC_TFT_SetForeGroundColor(BLACK);
-    if(temp < 99.5)
+    if(temp < TEMP_LIMIT)
     {
         MXC_TFT_SetBackGroundColor(GREEN);
         TFT_Print(lcd_text_buff, 60, 150, (int)&Arial28x28[0], sprintf(lcd_text_buff, "%3.2f F",temp));
@@ -232,59 +325,55 @@ static void display_temperature(float temp)
     {
         MXC_TFT_SetBackGroundColor(RED);
         TFT_Print(lcd_text_buff, 60, 150, (int)&Arial28x28[0], sprintf(lcd_text_buff, "%3.2f F",temp));
-        TFT_Print(lcd_text_buff, 142, 150, (int)&Arial12x12[0], sprintf(lcd_text_buff, "o"));
+        TFT_Print(lcd_text_buff, 158, 150, (int)&Arial12x12[0], sprintf(lcd_text_buff, "o"));
         TFT_Print(lcd_text_buff, 40, 180, (int)&Arial28x28[0], sprintf(lcd_text_buff, "NOT SAFE!"));
     }
 }
 
 
+// ========================================================================================= //
+
+
 // This is the main control loop
 void execute_ssm()
 {
-    cnn_output_t* cnn_out;
-    area_t ideal_top = {80, 90, 80, 1};
-    area_t ideal_left = {80, 90, 1, 100};
-    area_t ideal_bottom = {80, 190, 80, 1};
-    area_t ideal_right = {160, 90, 1, 100};
-    int ideal_center_x = 120;
-    int ideal_center_y = 140;
-    int diff_x = 0;
-    int diff_y = 0;
-    uint8_t is_centered = 0;
-    static uint8_t unstable_frame_count = 0;
-    static uint8_t unstable_x_count = 0;
-    static uint8_t unstable_y_count = 0;
-    positioning_state_t position;
-    float boxes[5] = {80, 100, 110, 120, 130}; 
-    float temps[5] = {1.2564, 1.2099, 1.1264, 1.0652, 1.0316};
-    static uint8_t temp_taken = 0;
     while(1)
     {
         switch (ssm.current_state)
         {
+            // the idle state displays bouncing text to the screen
             case IDLE: 
             {
                 static uint32_t count = 0;
-                if(count == 100000)
+                if(count == IDLE_TEXT_PERIOD)
                 {
                     count = 0;
+                    // text direction and position
                     static int x_dir = 1;
                     static int y_dir = 1;
                     static int idle_x = 0;
                     static int idle_y = 0;
+
+                    // clear the text last position, display the next position
                     MXC_TFT_FillRect(&clear_idle_text, BLACK);
                     TFT_Print(lcd_text_buff, idle_x, idle_y, (int)&Arial12x12[0], sprintf(lcd_text_buff, "IDLE"));
+                    
+                    // update the position to clear
                     clear_idle_text.x = idle_x;
                     clear_idle_text.y = idle_y;
+
+                    // increment the position
                     idle_x+=x_dir;
                     idle_y+=y_dir;
-                    if(idle_x+40 > 240)
+
+                    // check LCD boundaries, then switch directions
+                    if(idle_x+40 > LCD_W)
                     {
                         x_dir = -1;
                         idle_x+=x_dir;
                         MXC_TFT_SetForeGroundColor(YELLOW);
                     }
-                    if(idle_y + 20 > 320)
+                    if(idle_y + 20 > LCD_H)
                     {
                         y_dir = -1;
                         idle_y+=y_dir;
@@ -306,14 +395,19 @@ void execute_ssm()
                 count++;
                 break;
             }
+            // the search state looks for a face
             case SEARCH:
             {
+                // clear the idle text
                 MXC_TFT_FillRect(&clear_idle_text, BLACK);
                 MXC_TFT_FillRect(&clear_pos_text, BLACK);
-                printf("STATE: search\ntime left: %i\n",ssm.time_left());
-                timer_bar.x = ((240/get_expiration_period())*ssm.time_left());
-                timer_bar.w = (240/get_expiration_period());
+
+                // update the timer countdown bar
+                timer_bar.x = ((LCD_W/get_expiration_period())*ssm.time_left());
+                timer_bar.w = (LCD_W/get_expiration_period());
                 MXC_TFT_FillRect(&timer_bar, BLACK);
+
+                // do a forward pass through the CNN
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, NULL);
                 if(cnn_out->face_status == FACE_PRESENT)
                 {
@@ -321,17 +415,19 @@ void execute_ssm()
                 }
                 break;
             }
+            // the positioning state helps the user center their face
             case POSITIONING:
             {
+                // update the timer countdown bar
                 timer_bar.x = ((240/get_expiration_period())*ssm.time_left());
                 timer_bar.w = (240/get_expiration_period());
                 MXC_TFT_FillRect(&timer_bar, BLACK);
-                // variables to determine if position stable in x and y directions
+
+                // variables to determine if face position stable in x and y directions
                 // first stabilize x then y
                 static uint8_t x_stable = 0;
                 static uint8_t y_stable = 0;
                 
-                printf("STATE: positioning\ntime left: %i\n",ssm.time_left());
                 // do a forward pass through the CNN and confirm a face is in the frame
                 cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                 if(cnn_out->face_status == NO_FACE_PRESENT)
@@ -347,7 +443,7 @@ void execute_ssm()
                 // first check if x position stable
                 if(diff_x < CENTERING_THRESHOLD && diff_x > -CENTERING_THRESHOLD)
                 {
-                    // set x is stable
+                    // set x to stable
                     is_centered = 1;
                     x_stable = 1;
                     unstable_x_count = 0;
@@ -363,6 +459,7 @@ void execute_ssm()
                         // reset the stabilization variables
                         is_centered = 0;
                         x_stable = 0;
+                        
                         // try to restabilize by first moving left
                         // only redisplay the text if not already moving left
                         if(diff_x > CENTERING_THRESHOLD && position != MOVING_LEFT)
@@ -384,14 +481,19 @@ void execute_ssm()
                 // once x is stable then stabilize y
                 if(x_stable)
                 {
-                    if(diff_y < CENTERING_THRESHOLD && diff_y > -CENTERING_THRESHOLD && x_stable)
+                    // check if y is stable
+                    if(diff_y < CENTERING_THRESHOLD && diff_y > -CENTERING_THRESHOLD)
                     {
-                        is_centered &= 1;
+                        // set y to stable
+                        is_centered &= 1; // doesn't do anything but both x and y should be stable to be centered
                         y_stable = 1;
                         unstable_y_count = 0;
                     }
                     else
                     {
+                        // if y is unstable, increment the count
+                        // only set to unstable if uncentered for multiple frames
+                        // this filters out the noise of y measurements
                         unstable_y_count++;
                         if(unstable_y_count >= 2)
                         {
@@ -413,42 +515,53 @@ void execute_ssm()
                     }
                 }
 
+                // now display the ideal rectangle the user needs to center their face in
                 MXC_TFT_FillRect(&ideal_top, BLACK);
                 MXC_TFT_FillRect(&ideal_bottom, BLACK);
                 MXC_TFT_FillRect(&ideal_left, BLACK);
                 MXC_TFT_FillRect(&ideal_right, BLACK);
                 if(is_centered)
                 {
+                    // make the center circle green to notify the user that they are centered
                     MXC_TFT_FillCircle(120,140,3,GREEN);
+                    set_state(MEASUREMENT);
                 }
                 else
                 {
                     MXC_TFT_FillCircle(120,140,3,BLACK);
                 }
-                if(is_centered)
-                {
-                    set_state(MEASUREMENT);
-                }
                 break;
             }
+            // the measurement state finds a running average of the box area
+            // uses interpolation to determine a factor to multiply the temperature by
+            // We do this because the temperature sensor has a wide field of view and we 
+            // want to generate a rough estimate regardless of how far the user is standing
+            // This also prevents a person from purposely standing far to 'trick' the system
             case MEASUREMENT:
             {
+                // once a temperature is taken we don't need to go through the following process
                 if(!temp_taken)
                 {
+                    // update the timer countdown bar
                     timer_bar.x = ((240/3)*(ssm.time_left()-5));
                     timer_bar.w = (240/3);
                     MXC_TFT_FillRect(&timer_bar, BLACK);
+
+                    // update the position to centered
                     position = CENTERED;
-                    printf("STATE: measurement\ntime left: %i\n",ssm.time_left());
+
+                    // do a forward pass through the network
                     cnn_out = run_cnn(DISPLAY_FACE_STATUS, DISPLAY_BB);  
                     if(cnn_out->face_status == NO_FACE_PRESENT)
                     {
                         set_state(SEARCH);
                     } 
                     
+                    // find the distance to the center
                     diff_x = cnn_out->x-(cnn_out->w)/2 - ideal_center_x;
                     diff_y = cnn_out->y+(cnn_out->h)/2 - ideal_center_y;
 
+                    // make sure we are centered
                     if(diff_x < CENTERING_THRESHOLD && diff_x > -CENTERING_THRESHOLD)
                     {
                         is_centered = 1;
@@ -466,33 +579,50 @@ void execute_ssm()
                         is_centered = 0;
                     }
 
+                    // display the ideal bounding box the user needs to center their face in
                     MXC_TFT_FillRect(&ideal_top, BLACK);
                     MXC_TFT_FillRect(&ideal_bottom, BLACK);
                     MXC_TFT_FillRect(&ideal_left, BLACK);
                     MXC_TFT_FillRect(&ideal_right, BLACK);
+
+                    // if we are still centered then we can move on
                     if(is_centered)
                     {
                         static int frame_count = 0;
                         static int last_area = 0;
                         static int current_area = 0;
                         static int running_avg_iir = 0;
+
+                        // get the current area and divide by 100 for conveniance
                         current_area = (cnn_out->w * cnn_out->h)/100;
+
+                        // only start the running average after the first area is captured
                         if(last_area > 0)
                         {
-                            running_avg_iir = current_area/10 + (9*last_area)/10; // y[n] = alpha*x[n] + (1-alpha)*y[n-1]
+                            // y[n] = alpha*x[n] + (1-alpha)*y[n-1]
+                            running_avg_iir = current_area/6 + (5*last_area)/6; 
                             last_area = running_avg_iir;
                         }
                         else
                         {
                             last_area = current_area;
                         }
+
+                        // count the number of frames for the running average
                         frame_count++;
-                        unstable_frame_count = 0;
+                        unstable_frame_count = 0; // we are stable so reset this variable
+
+                        // continue to display center dot
                         MXC_TFT_FillCircle(120,140,3,GREEN);
+
+                        // the user is centered so tell them to keep still so can get a good reading
                         MXC_TFT_FillRect(&clear_pos_text, BLACK);
                         TFT_Print(lcd_text_buff, 60, 240, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "HOLD STILL! %i", ssm.time_left()-5));
+                        
+                        // after 5 frames the running average is good enough to continue
                         if(frame_count == 5)
                         {
+                            // find the closest box area in the 'look up table'
                             int i;
                             for(i = 0; i < 5; i++)
                             {
@@ -501,12 +631,18 @@ void execute_ssm()
                                     break;
                                 }
                             }
+
+                            // derive the scaling factor using interpolation
                             float factor = (
                                 temps[i]*(boxes[i]-(float)running_avg_iir) \
                                 + temps[i-1]*((float)running_avg_iir-boxes[i-1])) \
                                 /(boxes[i]-boxes[i-1]);
+
+                            // display the estimated temperature
                             TFT_Print(lcd_text_buff, 0, 270, (int)&SansSerif16x16[0], sprintf(lcd_text_buff, "Temp: %.1f-->%i  ", get_temp()*factor, running_avg_iir));
-                            frame_count = 0;
+                            frame_count = 0; // reset the frame count
+
+                            // a stable temperature has been recorded so move on to the display page
                             if(ssm.time_left() < 6)
                             {
                                 temp_taken = 1;
@@ -514,6 +650,9 @@ void execute_ssm()
                             }
                         }
                     }
+                    // if the user is not centered for multiple frames, move back to the positioning state
+                    // This filters out the noise of the bounding box measurements because otherwise we
+                    // jump between states too easily when we get one bad bounding box measurement
                     else
                     {
                         unstable_frame_count++;

@@ -33,7 +33,7 @@
 
 
 // This file defines helper functions for interacting with the camera
-// Most of these come from the Maxim Integrated sample code
+// Most of the code is derived from Maxim Integrated sample code
 
 #ifndef CAMERA_FUNCS_H
 #define CAMERA_FUNCS_H
@@ -51,30 +51,12 @@
 */
 int init_camera_sensor(uint16_t x_dim, uint16_t y_dim);
 
-/*
-    Description: get the x dimension of the image
-
-    Parameters: none
-
-    Return: x dimension of the image
-*/
-int get_image_x();
-
-
-/*
-    Description: get the y dimension of the image
-
-    Parameters: none
-
-    Return: y dimension of the image
-*/
-int get_image_y();
-
 
 /*
     Description: This is a blocking function that starts an image
                  capture and only returns once the camera has
-                 captured the image
+                 captured the image. The reason for blocking is to
+                 keep the camera, LCD, and CNN sequentially in sync.
 
     Parameters: none
 

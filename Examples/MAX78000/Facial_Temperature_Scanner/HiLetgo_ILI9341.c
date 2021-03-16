@@ -38,21 +38,37 @@
 #include "tft_fthr.h"
 #include "camera.h"
 
+// ========================================================================================= //
+// ================================ FUNCTION DEFINITIONS =================================== //
+// ========================================================================================= //
+
 void init_ILI_LCD()
 {
-  
+    // the polarity and phase of the LCD SPI seems to work with multiple configurations
     // MXC_SPI0->ctrl2 |= MXC_F_SPI_REVA_CTRL2_CLKPHA;
     // MXC_SPI0->ctrl2 |= MXC_F_SPI_REVA_CTRL2_CLKPOL;
 
+    // initialize the LCD and spi drivers using Maxim Integrated Driver
+    // I modfied the clock rate to 40 MHz
     // ssidx is 1 because that gpio is available on the board (11 or 8)
-    int res = MXC_TFT_Init(MXC_SPI0, 1,NULL,NULL);
-    printf("init LCD: %i\n", res);
-    area_t a = {50,50,30,30};
-    int8_t frame_buffer[10000];
+    int ret = MXC_TFT_Init(MXC_SPI0, 1,NULL,NULL);
+    if(ret < 0)
+    {
+      printf("LCD init error: %i\n", ret);
+      return;
+    }
+    printf("init LCD: %i\n", ret);
+
+    // the LCD is upside down
     MXC_TFT_SetRotation(ROTATE_180);
+
+    // text color should be white by default
     MXC_TFT_SetForeGroundColor(WHITE);
     MXC_TFT_ClearScreen();
 }
+
+
+// ========================================================================================= //
 
 
 void display_RGB565_img(int x_coord, int y_coord)
@@ -66,9 +82,13 @@ void display_RGB565_img(int x_coord, int y_coord)
 	MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
 }
 
+
+// ========================================================================================= //
+
+
 // this function takes the raw frame buffer and decimates it by half
 // it also co
-void decimate_half(int8_t* cnn_buffer, uint8_t* raw, int w, int h)
+static void decimate_half(int8_t* cnn_buffer, uint8_t* raw, int w, int h)
 {
   int w_dec = w >> 1;
   int h_dec = h >> 1;
@@ -89,7 +109,11 @@ void decimate_half(int8_t* cnn_buffer, uint8_t* raw, int w, int h)
   }
 }
 
-void hist_eq(uint8_t* img, int w, int h)
+
+// ========================================================================================= //
+
+
+static void hist_eq(uint8_t* img, int w, int h)
 {
   uint8_t hist[256] = {0};
   uint8_t cdf[256] = {0};
@@ -133,6 +157,10 @@ void hist_eq(uint8_t* img, int w, int h)
   }
 }
 
+
+// ========================================================================================= //
+
+
 void load_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
 {
   uint8_t   *raw; // pointer to raw frame buffer
@@ -142,7 +170,7 @@ void load_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
   // Get the details of the image from the camera driver.
 	camera_get_image(&raw, &imgLen, &w, &h);
 
-  // details for converting from YUV422 to RGB565 in gray scale
+  // details for converting from YUV422 to RGB565 in gray scale (not used here)
   /*
     YUV422 format:
 
@@ -186,56 +214,21 @@ void load_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
         int8_t px_br = ((int8_t*)cnn_buffer)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)];
         int8_t px_bl = ((int8_t*)cnn_buffer)[w_dec*(w_dec-1-col_dec)+row_dec];
 
-        // swap the values to rotate the image 90 degrees
-        // ((uint16_t*)raw)[w_dec*row_dec+col_dec] = px_tr;
-        // ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)] = px_br;
-        // ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = px_bl;
-        // ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec] = px_tl;
-
-        // uncomment this to display a grayscale image
-        // we need to represent luminance using RGB565
-        //#define VISUALIZE_GRAY
-        #ifdef VISUALIZE_GRAY
-        uint16_t R_tl = ((px_tl & 0x00FF) & 0x00F8);
-        uint16_t G_tl = ((px_tl & 0x00FF) & 0x00FC);
-        G_tl = (((G_tl & 0xE0) >> 5) | ((G_tl & 0x1C) << 11));
-        uint16_t B_tl = (((px_tl & 0x00FF) & 0x00F8) << 5);
-
-        uint16_t R_tr = ((px_tr & 0x00FF) & 0x00F8);
-        uint16_t G_tr = ((px_tr & 0x00FF) & 0x00FC);
-        G_tr = (((G_tr & 0xE0) >> 5) | ((G_tr & 0x1C) << 11));
-        uint16_t B_tr = (((px_tr & 0x00FF) & 0x00F8) << 5);
-
-        uint16_t R_br = ((px_br & 0x00FF) & 0x00F8);
-        uint16_t G_br = ((px_br & 0x00FF) & 0x00FC);
-        G_br = (((G_br & 0xE0) >> 5) | ((G_br & 0x1C) << 11));
-        uint16_t B_br = (((px_br & 0x00FF) & 0x00F8) << 5);
-
-        uint16_t R_bl = ((px_bl & 0x00FF) & 0x00F8);
-        uint16_t G_bl = ((px_bl & 0x00FF) & 0x00FC);
-        G_bl = (((G_bl & 0xE0) >> 5) | ((G_bl & 0x1C) << 11));
-        uint16_t B_bl = (((px_bl & 0x00FF) & 0x00F8) << 5);
-
-        ((uint16_t*)raw)[w_dec*row_dec+col_dec] = (R_tl | G_tl | B_tl);
-        ((uint16_t*)raw)[w_dec*(col_dec)+(w_dec-1-row_dec)] = (R_tr | G_tr | B_tr);
-        ((uint16_t*)raw)[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (R_br | G_br | B_br);
-        ((uint16_t*)raw)[w_dec*(w_dec-1-col_dec)+row_dec] = (R_bl | G_bl | B_bl);
-        #endif
-      // write the signed grayscale values to the CNN buffer
-      cnn_buffer[w_dec*row_dec+col_dec] = (px_tr & 0xFF)-128;
-      cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_br & 0xFF)-128;
-      cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_bl & 0xFF)-128;
-      cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_tl & 0xFF)-128;
-
-      // cnn_buffer[w_dec*row_dec+col_dec] = (px_tr & 0x00FF)-128;
-      // cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_br & 0x00FF)-128;
-      // cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_tl & 0x00FF)-128;
-      // cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_bl & 0x00FF)-128;
+        
+        // write the signed grayscale values (rotated 90 degrees CCW) to the CNN buffer
+        cnn_buffer[w_dec*row_dec+col_dec] = (px_tr & 0xFF)-128;
+        cnn_buffer[w_dec*(col_dec)+(w_dec-1-row_dec)] = (px_br & 0xFF)-128;
+        cnn_buffer[w_dec*(w_dec-1-row_dec)+(w_dec-1-col_dec)] = (px_bl & 0xFF)-128;
+        cnn_buffer[w_dec*(w_dec-1-col_dec)+row_dec] = (px_tl & 0xFF)-128;
     }
   }
   // display the image  
   MXC_TFT_ShowImageCameraRGB565(x_coord, y_coord, raw, h, w);
 }
+
+
+// ========================================================================================= //
+
 
 void TFT_Print(char *str, int x, int y, int font, int length) 
 {

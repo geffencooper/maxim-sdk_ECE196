@@ -45,26 +45,7 @@ int main(void)
 {
   // DO NOT DELETE THIS LINE:
   MXC_Delay(SEC(2)); // Let debugger interrupt if needed
-
-  // // Enable cache
-  // MXC_ICC_Enable(MXC_ICC0);
-
-  // // Switch to 100 MHz clock
-  // MXC_SYS_Clock_Select(MXC_SYS_CLOCK_IPO);
-  // SystemCoreClockUpdate();
-
-  // init_ILI_LCD();
-
-  // MXC_TFT_SetRotation(ROTATE_180);
-  // MXC_TFT_SetBackGroundColor(RED);
-  // memset(buff2,32, TFT_buff2_SIZE);
-	// TFT_Print(buff2, 0, 200, (int)&SansSerif19x19[0], sprintf(buff2, "STATE:"));
-  // TFT_Print(buff2, 90, 200, (int)&SansSerif16x16[0], sprintf(buff2, "MEASUREMENT"));
-  // init_IR_temp_sensor();
-  // while(1)
-  // {
-  //   tx_data();
-  // }
+  
   // initialize the state machine and the peripherals
   printf("initializing state machine\n");
   int ret = init_ssm();
@@ -77,15 +58,3 @@ int main(void)
   // start the state machine
   execute_ssm();
 }
-#ifdef MASTERDMA
-        MXC_DMA_ReleaseChannel(0);
-        MXC_DMA_ReleaseChannel(1);
-        
-        NVIC_EnableIRQ(DMA0_IRQn);
-        NVIC_EnableIRQ(DMA1_IRQn);
-        MXC_SPI_MasterTransactionDMA(&req);
-        
-        while (DMA_FLAG == 0);
-        
-        DMA_FLAG = 0;
-#endif

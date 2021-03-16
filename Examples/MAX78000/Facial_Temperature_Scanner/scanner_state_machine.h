@@ -16,6 +16,7 @@ typedef enum
     RESET_STATE // this resets the state machine before going to idle
 } scan_state_t;
 
+
 /*
     Description: This function initializes all the peripherals
                  used by the state machine.
@@ -66,7 +67,5 @@ scan_state_t get_state();
     Return: the amount of time left in seconds
 */
 uint8_t get_time_left();
-
-
 
 #endif

@@ -1,4 +1,3 @@
-/***** Includes *****/
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -8,17 +7,30 @@
 #include "i2c_regs.h"
 #include "i2c.h"
 
-// macros
-#define TX_SIZE 4
-#define RX_SIZE 4
+// ========================================================================================= //
+// ===================================== MACROS ============================================ //
+// ========================================================================================= //
+
+#define TX_SIZE 1
+#define RX_SIZE 3
 #define SENSOR_ADDRESS 0x5A
 #define FREQUENCY 50000
+#define TEMPERATURE_REGISTER 0x07
 
-// Global variables
+
+// ========================================================================================= //
+// =================================== Global Variables ==================================== //
+// ========================================================================================= //
+mxc_i2c_req_t i2c_transaction;
 uint8_t tx_buffer[TX_SIZE] = {0};
 uint8_t rx_buffer[RX_SIZE] = {0};
-mxc_i2c_req_t i2c_transaction;
 
+
+// ========================================================================================= //
+// ================================ FUNCTION DEFINITIONS =================================== //
+// ========================================================================================= //
+
+// callback function when I2C transaction complete
 static void transaction_complete(mxc_i2c_req_t* req, int result)
 {
     // if(result != 0)
@@ -30,6 +42,10 @@ static void transaction_complete(mxc_i2c_req_t* req, int result)
     //     printf("%02X ", rx_buffer[i]);
     // }
 }
+
+
+// ========================================================================================= //
+
 
 void init_IR_temp_sensor()
 {
@@ -47,9 +63,9 @@ void init_IR_temp_sensor()
     i2c_transaction.i2c = MXC_I2C1;
     i2c_transaction.addr = SENSOR_ADDRESS;
     i2c_transaction.tx_buf = tx_buffer;
-    i2c_transaction.tx_len = 1;
+    i2c_transaction.tx_len = TX_SIZE;
     i2c_transaction.rx_buf = rx_buffer;
-    i2c_transaction.rx_len = 3;
+    i2c_transaction.rx_len = RX_SIZE;
     i2c_transaction.restart = 0;
     i2c_transaction.callback = transaction_complete;
 }
@@ -68,8 +84,8 @@ float get_temp()
     {
         uint16_t bytes;
         float temp;
-        bytes = (rx_buffer[1] << 8) | rx_buffer[0];
-        temp = ((((float)bytes*0.02)-273.15)*9 / 5)+32;
+        bytes = (rx_buffer[1] << 8) | rx_buffer[0]; // reverse bytes
+        temp = ((((float)bytes*0.02)-273.15)*9 / 5)+32; // convert from Kelvin to C then F
         return temp;
         //printf("temp:%f\n", temp);
         //printf("\033[0;0f");

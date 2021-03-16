@@ -1,3 +1,8 @@
+// These are the macros for the startup command sequence for the LCD
+// While I was able to get this working, I had a difficult time getting 
+// the LCD working at a fast enough rate and decided to use the compatible LCD
+// driver provided by Maxim Integrated
+
 #ifndef HILETGO_ILI9341_MACROS
 #define HILETGO_ILI9341_MACROS
 

@@ -38,9 +38,16 @@
 #include "camera.h"
 #include "dma.h"
 
+// ========================================================================================= //
+// ===================================== MACROS============================================= //
+// ========================================================================================= //
+
 #define CAMERA_FREQ   (10 * 1000 * 1000)
 
-// Global variables
+
+// ========================================================================================= //
+// ================================== GLOBAL VARIABLES ===================================== //
+// ========================================================================================= //
 static int IMAGE_SIZE_X;
 static int IMAGE_SIZE_Y;
 static const uint8_t camera_settings[][2] = {
@@ -167,6 +174,10 @@ static const uint8_t camera_settings[][2] = {
 };
 
 
+// ========================================================================================= //
+// ================================ FUNCTION DEFINITIONS =================================== //
+// ========================================================================================= //
+
 int init_camera_sensor(uint16_t x_dim, uint16_t y_dim)
 {
     IMAGE_SIZE_X = x_dim;
@@ -186,6 +197,8 @@ int init_camera_sensor(uint16_t x_dim, uint16_t y_dim)
       camera_write_reg(camera_settings[i][0], camera_settings[i][1]);
     }
 
+    // technically the pixel format should be YUV422 to get the lumincance value but I found that extracting 
+    // the first byte of RGB565 works well too since is contains the MSBs for the green bits which tend to have more weight for brightness
     int ret = camera_setup(x_dim, y_dim, PIXFORMAT_RGB565, FIFO_FOUR_BYTE, USE_DMA, dma_channel);
 	  if (ret != STATUS_OK) 
     {
@@ -194,16 +207,9 @@ int init_camera_sensor(uint16_t x_dim, uint16_t y_dim)
 	  }
 }
 
-int get_image_x()
-{
-    return  IMAGE_SIZE_X;
-}
 
+// ========================================================================================= //
 
-int get_image_y()
-{
-    return  IMAGE_SIZE_Y;
-}
 
 void capture_camera_img(void) 
 {

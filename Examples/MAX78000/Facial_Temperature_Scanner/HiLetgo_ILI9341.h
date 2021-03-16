@@ -32,8 +32,6 @@
 ******************************************************************************/
 
 // This file defines the functions needed to interact with the LCD 
-// Much of this code is based off of the following adafruit library:https://github.com/adafruit/Adafruit_ILI9341
-// as well as the Maxim Integrated Library for a similar TFT display 
 
 #ifndef HILETGO_ILI9341_H
 #define HILETGO_ILI9341_H
@@ -42,13 +40,14 @@
 
 /*
     Description: This function initializes the SPI drivers
-                 and sends the startup commands to the LCD.
+                 and LCD.
 
     Parameters: none
 
     Return: none
 */
 void init_ILI_LCD();
+
 
 /*
     Description: This function is called once the camera has captured
@@ -69,16 +68,17 @@ void display_RGB565_img(int x_coord, int y_coord);
 /*
     Description: This function writes text to the LCD
 
-    Parameters: Pointer to the text buffer, location, and font
+    Parameters: Pointer to the text buffer, location, font, and length of string
 
     Return: none
 */
 void TFT_Print(char *str, int x, int y, int font, int length);
 
+
 /*
     Description: This function is used to extract the image data from the camera
                  and transform it into a format that the CNN expects as input.
-                 This includes extracting the luminance value from the YUV422 pixels,
+                 This includes extracting the effective luminance value from pixels,
                  decimating the image from 160x160 to 80x80, rotating the image 90 degrees
                  as the camera is not aligned on the board, and converting to int8_t. The
                  original image buffer is not changed and the transformed version gets loaded
@@ -90,8 +90,4 @@ void TFT_Print(char *str, int x, int y, int font, int length);
     Return: none
 */
 void load_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer);
-
-// void ILI_init();
-// void ILI_send_command(uint8_t command);
-// void ILI_send_data(uint8_t* address, uint8_t num_bytes);
 #endif
