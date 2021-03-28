@@ -6,7 +6,7 @@
 **************************************************************************************************/
 
 /*
- * This header file was automatically generated for the mnist network from a template.
+ * This header file was automatically generated for the Geffen_mnist network from a template.
  * Please do not edit; instead, edit the template and regenerate.
  */
 
@@ -23,10 +23,10 @@ typedef int16_t q15_t;
 
 /*
   SUMMARY OF OPS
-  Hardware: 10,883,968 ops (10,751,808 macc; 128,576 comp; 3,584 add; 0 mul; 0 bitwise)
+  Hardware: 1,418,112 ops (1,388,672 macc; 29,440 comp; 0 add; 0 mul; 0 bitwise)
 
   RESOURCE USAGE
-  Weight memory: 71,148 bytes out of 442,368 bytes total (16%)
+  Weight memory: 22,472 bytes out of 442,368 bytes total (5%)
   Bias memory:   10 bytes out of 2,048 bytes total (0%)
 */
 

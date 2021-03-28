@@ -299,7 +299,7 @@ void tft_character(int x, int y, int c)
     unsigned char z,w;
 
     if ((c < 31) || (c > 127)) return;   // test char range
-
+    
     // read font parameter from start of array
     offset = g_font[0];                    // bytes / char
     hor = g_font[1];                       // get hor size of font
@@ -382,7 +382,7 @@ static void tft_spi_init(void)
     int quadMode = 0;
     int numSlaves = 1;
     int ssPol = 0;
-    unsigned int tft_hz = TFT_SPI_FREQ;
+    unsigned int tft_hz = TFT_SPI_FREQ*4;
 
     mxc_spi_pins_t tft_pins;
 
@@ -708,10 +708,16 @@ void MXC_TFT_ShowImageCameraRGB565(int x0, int y0, uint8_t *image, int width, in
 
 	write_command(0x2C);  // send pixel
 
+    // for (j = 0; j < width; j++) {         //Lines
+    //     for (i = 0; i < width*height; i += width) {     // one line
+    //         write_data(*(image + ((i + j) * 2)));
+    //         write_data(*(image + ((i + j) * 2) + 1));
+    //     }
+    // }
     for (j = 0; j < width; j++) {         //Lines
         for (i = 0; i < width*height; i += width) {     // one line
-            write_data(*(image + ((i + j) * 2)));
-            write_data(*(image + ((i + j) * 2) + 1));
+            write_data(*(image + ((width*height-i-width + width-j-1) * 2)));
+            write_data(*(image + ((width*height-i-width + width-j-1) * 2+1)));
         }
     }
 

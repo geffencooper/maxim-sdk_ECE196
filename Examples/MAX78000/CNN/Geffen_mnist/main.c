@@ -32,8 +32,8 @@
 * ownership rights.
 *******************************************************************************/
 
-// mnist
-// Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix mnist --checkpoint-file trained/ai85-mnist-qat8-q.pth.tar --config-file networks/mnist-chw-ai85.yaml --softmax --device MAX78000 --compact-data --mexpress --timer 0 --display-checkpoint
+// Geffen_mnist
+// Created using ./ai8xize.py --verbose --log --test-dir sdk/Examples/MAX78000/CNN --prefix Geffen_mnist --checkpoint-file trained/simplemnist_q.pth.tar --config-file networks/simplemnist.yaml --device MAX78000 --compact-data --mexpress --timer 0 --display-checkpoint
 
 #define EV
 
@@ -220,10 +220,10 @@ int main(void)
 
 /*
   SUMMARY OF OPS
-  Hardware: 10,883,968 ops (10,751,808 macc; 128,576 comp; 3,584 add; 0 mul; 0 bitwise)
+  Hardware: 1,418,112 ops (1,388,672 macc; 29,440 comp; 0 add; 0 mul; 0 bitwise)
 
   RESOURCE USAGE
-  Weight memory: 71,148 bytes out of 442,368 bytes total (16%)
+  Weight memory: 22,472 bytes out of 442,368 bytes total (5%)
   Bias memory:   10 bytes out of 2,048 bytes total (0%)
 */
 

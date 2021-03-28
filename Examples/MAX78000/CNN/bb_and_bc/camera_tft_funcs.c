@@ -360,7 +360,7 @@ void display_grayscale_img(int x_coord, int y_coord, int8_t* cnn_buffer)
 
   // Get the details of the image from the camera driver.
 	camera_get_image(&raw, &imgLen, &w, &h);
-  //hist_eq(raw,w,h);
+  hist_eq(raw,w,h);
 
   // details for converting from YUV422 to RGB565 in gray scale
   /*

@@ -132,10 +132,10 @@ int main(void)
     
     int face = (*((volatile uint32_t *) 0x50404000));
     int no_face = (*((volatile uint32_t *) 0x50404004));
-    int x = (*((volatile uint32_t *) 0x50404008))/1200;
+    int x = (*((volatile uint32_t *) 0x50404008))/1100;
     int y = (*((volatile uint32_t *) 0x5040400C))/1100;
     int w = (*((volatile uint32_t *) 0x50404010))/1100;
-    int h = (*((volatile uint32_t *) 0x50404014))/1100;
+    int h = (*((volatile uint32_t *) 0x50404014))/1000;
     printf("face: %i\n",face);
     printf("no face: %i\n",no_face);
     printf("x: %i\n",x); // 0,0,0 

@@ -1,4 +1,4 @@
-#sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/Geffen_mnist/build/max78000.elf verify reset exit"
+sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/Geffen_mnist/build/max78000.elf verify reset exit"
 #sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/geffen_faces/build/max78000.elf verify reset exit"
 #sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/geffen_face_classifier/build/max78000.elf verify reset exit"
 #sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/Geffen_Camera_Interface/build/max78000.elf verify reset exit"
@@ -13,4 +13,8 @@
 #sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts
 #sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/mini_vgg_face_classifier/build/max78000.elf verify reset exit"
 #sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/bb/build/max78000.elf verify reset exit"
-sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/bb_and_bc/build/max78000.elf verify reset exit"
+#sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/bb_and_bc/build/max78000.elf verify reset exit"
+#sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/eyes/build/max78000.elf verify reset exit"
+#sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/face_c/build/max78000.elf verify reset exit"
+#sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/TFT_Demo/build/max78000.elf verify reset exit"
+#sudo ./openocd -f interface/cmsis-dap.cfg -f target/max78000.cfg -s ./scripts -c "program ../../Examples/MAX78000/CNN/simplemnist/build/max78000.elf verify reset exit"
